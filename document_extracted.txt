@@ -1,0 +1,1971 @@
+UNIVERSIDADE DE MOGI DAS CRUZES
+
+AMANDA NUNES DE SOUZA 
+
+ANDRÉA ORTEGA DE SOUZA 
+
+GABRIELLE DA SILVA ALVES 
+
+MILENA KAORI IANATA 
+
+FINNK – ORGANIZADOR FINANCEIRO
+
+MOGI DAS CRUZES
+
+2026
+
+AMANDA NUNES DE SOUZA (11251101181)
+
+ANDRÉA ORTEGA DE SOUZA (11251104266)
+
+GABRIELLE DA SILVA ALVES (11251101182)
+
+MILENA KAORI IANATA (11251103448)
+
+FINNK – ORGANIZADOR FINANCEIRO
+
+Aplicação Mobile desenvolvida durante a disciplina de Métodos Ágeis para o curso superior de Engenharia de Software na Universidade de Mogi das Cruzes (UMC) com fins acadêmicos.
+
+Orientador: Prof° Renato Mauro Richter
+
+MOGI DAS CRUZES
+
+2026
+
+Sumário
+
+1.BRIEFING6
+
+1.1.TEMA E TIPO DE SERVIÇO6
+
+1.2.A DOR / O PROBLEMA REAL6
+
+1.3.PROPOSTA DE VALOR (SOLUÇÃO)6
+
+1.4.OBJETIVOS GERAIS6
+
+1.5.OBJETIVOS ESPECÍFICOS6
+
+1.6.PÚBLICO-ALVO6
+
+1.7.PRINCIPAL DIFERENCIAL6
+
+1.8.METODOLOGIA PROPOSTA DE DESENVOLVIMENTO6
+
+1.9.ANÁLISE DE VIABILIDADE6
+
+1.10.RESULTADOS ESPERADOS7
+
+2.REQUISITOS DO USUÁRIO8
+
+3.REQUISITOS FUNCIONAIS DO SISTEMA9
+
+4.REQUISITOS NÃO FUNCIONAIS DO SISTEMA12
+
+5.REGRAS DE NEGÓCIO14
+
+6.REQUISITOS DE PRODUTO16
+
+7.REQUISITOS ORGANIZACIONAIS16
+
+8.REQUISITOS EXTERNOS16
+
+9.MATRIZ DO MANIFESTO ÁGIL17
+
+10.PROPOSTA INCREMENTAL DE SOFTWARE19
+
+10.1.DESENVOLVIMENTO INCREMENTAL E FATIAMENTO DO ESCOPO19
+
+10.2.PILARES E VALORES DO SCRUM21
+
+10.2.1PILARES DO SCRUM21
+
+10.2.2VALORES DO SCRUM22
+
+11.MAPEAMENTO DE PERFIL E MATRIZ T-SHAPE23
+
+11.1.HABILIDADES TÉCNICAS23
+
+11.2.HABILIDADES COMPORTAMENTAIS24
+
+11.3.MAPEAMENTO T-SHAPE25
+
+12.FUNÇÕES E TERMO DE COMPROMISSO26
+
+13.RESOLUÇÃO DE CENÁRIOS CRÍTICOS E CONFLITOS DE PAPÉIS27
+
+14.CONSOLIDAÇÃO DE GOVERNANÇA DA EQUIPE29
+
+15.MAPEAMENTO DE VALOR E ESTRUTURAÇÃO DO PRODUCT BACKLOG31
+
+15.1.DEFINIÇÃO DA META DO PRODUTO (PRODUCT GOAL)31
+
+15.2.DECOMPOSIÇÃO HIERÁRQUICA31
+
+15.3.USER STORIES PRIORIZADAS32
+
+15.4.CRITÉRIOS DE ACEITE – US0132
+
+15.5.CHECKLIST INVEST33
+
+16.APLICAÇÃO DoD E DoR35
+
+16.1.CONTRATO DE QUALIDADE (DoD)35
+
+16.2.CRITÉRIOS DE ENTRADA (DoR)35
+
+16.3.APLICAÇÃO DO CHECKLIST36
+
+17.A SPRINT E O SPRINT PLANNING38
+
+17.1.META DA SPRINT I38
+
+17.2.DECOMPOSIÇÃO TÉCNICA DETALHADA38
+
+18.INTERAÇÃO HUMANO COMPUTADOR (IHC)41
+
+18.1.FUNCIONALIDADE CRÍTICA41
+
+18.2.PROTÓTIPO DE BAIXA FIDELIDADE41
+
+18.3.PROTÓTIPO DE ALTA FIDELIDADE43
+
+18.4.MATRIZ DE PLANEJAMENTO DE IHC44
+
+18.5.PERSONA ÁGIL45
+
+18.6.MAPEAMENTO – JORNADA DO USUÁRIO46
+
+18.7.PROTOTIPAÇÃO ALTA FIDELIDADE – TELA PRINCIPAL47
+
+18.8.TABELA DE REQUISITOS E CRITÉRIOS DE USABILIDADE48
+
+19.DECOMPOSIÇÃO NO PROJETO DE SQUAD49
+
+19.1.SELEÇÃO USER STORY49
+
+19.2.REDAÇÃO DA META DA SPRINT49
+
+19.3.TABELA DE DECOMPOSIÇÃO TÉCNICA49
+
+19.4.TABELA DE DECOMPOSIÇÃO DA SQUAD50
+
+20.ESTIMANDO O PROJETO52
+
+20.1.IDENTIFICAÇÃO DE ÉPICOS53
+
+BRIEFING
+
+ TEMA E TIPO DE SERVIÇO
+
+O Finnk – Organizador Financeiro é uma aplicação mobile voltada à organização e ao acompanhamento da vida financeira pessoal. O serviço permite que o usuário cadastre manualmente contas, compromissos, receitas, cartões, transações, faturas, parcelamentos e despesas recorrentes, reunindo essas informações em um único ambiente.
+
+ A DOR / O PROBLEMA REAL
+
+Muitas pessoas possuem seus gastos e compromissos financeiros distribuídos entre diferentes cartões, contas, assinaturas e despesas recorrentes. Essa fragmentação dificulta saber quanto já está comprometido e quanto ainda será pago nos próximos meses, aumentando o risco de esquecimentos e gastos além do planejado.
+
+ PROPOSTA DE VALOR (SOLUÇÃO)
+
+O produto “Finnk - Organizador Financeiro” ajuda pessoas que querem organizar suas finanças, aliviando a dificuldade de acompanhar gastos e compromissos distribuídos em diferentes fontes, através da consolidação dessas informações em um único ambiente, incluindo parcelas e despesas futuras.
+
+ OBJETIVOS GERAIS
+
+Desenvolver uma aplicação que permita ao usuário organizar, consolidar e monitorar seus compromissos financeiros, oferecendo uma visão clara dos gastos atuais e futuros em um único ambiente. O objetivo também é facilitar o acompanhamento de pagamentos, vencimentos, parcelas e demais compromissos financeiros, reduzindo a fragmentação dessas informações.
+
+ OBJETIVOS ESPECÍFICOS
+
+Permitir o cadastro manual de contas e compromissos financeiros. 
+
+Permitir o cadastro e acompanhamento de cartões de crédito e suas faturas. 
+
+Registrar transações, receitas e despesas. 
+
+Permitir o registro e acompanhamento de compras parceladas. 
+
+Exibir parcelas e compromissos futuros. 
+
+Permitir o cadastro de despesas e receitas recorrentes. 
+
+Apresentar um dashboard financeiro consolidado, com saldo, receitas, despesas e próximos vencimentos. 
+
+Facilitar a consulta do status dos compromissos, identificando itens pagos, pendentes e atrasados. 
+
+Apresentar informações financeiras de forma visual, incluindo categorias de gastos e evolução financeira. 
+
+Esses objetivos aparecem representados no protótipo pelas telas de Início, Dashboard, Compromissos, Cartões, Faturas, Parcelamentos, Transações e Configurações.
+
+ PÚBLICO-ALVO
+
+Pessoas que buscam organizar suas finanças pessoais, incluindo usuários com gastos distribuídos entre cartões, contas, parcelas, assinaturas e compromissos recorrentes, além de microempreendedores e trabalhadores autônomos que necessitam acompanhar receitas, despesas e compromissos financeiros de sua atividade. o sistema proporciona uma visão centralizada das movimentações e dos valores atuais e futuros, auxiliando no controle e planejamento financeiro.
+
+ PRINCIPAL DIFERENCIAL
+
+O principal diferencial do Finnk é a centralização dos compromissos financeiros em um único ambiente, permitindo visualizar não apenas os gastos já realizados, mas também parcelamentos, faturas, contas a vencer e despesas futuras. Dessa forma, o usuário pode ter uma visão mais ampla de sua situação financeira, sem precisar consultar diferentes fontes para acompanhar seus compromissos. Outro ponto importante é que o MVP funciona com dados cadastrados manualmente, não dependendo de integração com bancos ou cartões reais. Isso torna o projeto viável para a proposta acadêmica e evita que o protótipo dependa de integrações financeiras externas.
+
+ METODOLOGIA PROPOSTA DE DESENVOLVIMENTO
+
+O desenvolvimento do Finnk será realizado utilizando uma abordagem ágil e incremental, baseada nos princípios do Scrum. O projeto será dividido em incrementos, começando por um MVP com as funcionalidades essenciais de cadastro e acompanhamento financeiro. Posteriormente, serão acrescentadas funcionalidades como parcelamentos, compromissos futuros, alertas, orçamento, gráficos e recorrências. 
+
+A equipe também pretende trabalhar com ciclos de desenvolvimento, revisão e adaptação, utilizando feedbacks para aprimorar o produto. O projeto prevê a validação dos protótipos e funcionalidades e a utilização desses feedbacks para orientar as próximas entregas.
+
+ ANÁLISE DE VIABILIDADE
+
+O projeto é viável para a disciplina porque seu MVP pode funcionar com dados cadastrados manualmente, sem depender de integração com bancos ou cartões reais. A principal limitação está nas integrações financeiras, que envolvem questões técnicas, de segurança e privacidade. Por isso, recursos como importação automática de faturas, integração bancária e IA serão considerados para versões futuras.
+
+Para a etapa de IHC, o desenvolvimento passa pela elaboração de protótipo de baixa fidelidade e protótipo de alta fidelidade, permitindo representar e avaliar os fluxos e as interfaces antes da implementação completa.
+
+ RESULTADOS ESPERADOS
+
+Espera-se que o Finnk ofereça ao usuário uma forma simples, centralizada e visual de organizar suas finanças pessoais, permitindo acompanhar compromissos atuais e futuros. Ao final, espera-se que a aplicação possibilite:
+
+visualizar a situação financeira em um dashboard; 
+
+cadastrar e acompanhar compromissos; 
+
+controlar cartões e faturas; 
+
+acompanhar compras parceladas; 
+
+registrar receitas e despesas; 
+
+consultar transações; 
+
+visualizar próximos vencimentos; 
+
+acompanhar despesas recorrentes; 
+
+identificar valores comprometidos nos próximos períodos; 
+
+facilitar o planejamento financeiro pessoal
+
+ID
+
+Descrição do Requisito / Regra
+
+Critério de Aceite /Observação
+
+RU01
+
+Cadastrar contas e compromissos financeiros.
+
+Deve ser possível informar valor, vencimento, categoria e status.
+
+RU02
+
+Acompanhar o status de suas contas.
+
+Deve conseguir identificar contas pagas, pendentes e atrasadas.
+
+RU03
+
+Cadastrar cartões de créditos.
+
+Deve conseguir cadastrar diferentes cartões e suas respectivas faturas.
+
+RU04
+
+Registrar compras realizadas nos cartões.
+
+Deve informar valor, data e cartão utilizado.
+
+RU05
+
+Registrar compras parceladas.
+
+Deve informar o número de parcelas, valor da compra e taxas se existentes.
+
+RU06
+
+Acompanhar suas faturas de cartões.
+
+Deve conseguir consultar os gastos agrupados por cartão e período.
+
+RU07
+
+Cadastrar despesas recorrentes.
+
+Deve informar valor e periodicidade da despesa.
+
+RU08
+
+Visualizar todos os seus compromissos em um único lugar.
+
+Deve visualizar contas, cartões, faturas e parcelas de forma consolidada.
+
+RU09
+
+Acessar próximos vencimentos.
+
+Deve conseguir identificar os compromissos que vencerão em breve.
+
+REQUISITOS DO USUÁRIO
+
+REQUISITOS FUNCIONAIS DO SISTEMA
+
+ 
+
+ID
+
+Descrição do Requisito / Regra
+
+Critério de Aceite /Observação
+
+RF01
+
+O sistema deve permitir o cadastro de usuário com nome, e-mail e senha.
+
+O cadastro é concluído quando nome, e-mail e senha válidos são informados e os dados são armazenados corretamente.
+
+RF02
+
+O sistema deve permitir login e logout via e-mail e senha.
+
+Um usuário cadastrado consegue entrar com credenciais válidas e encerrar sua sessão pelo recurso de logout.
+
+RF03
+
+O sistema deve permitir recuperação de senha via e-mail.
+
+Ao solicitar a recuperação, o sistema envia um mecanismo de redefinição para o e-mail cadastrado.
+
+RF04
+
+O sistema deve permitir editar dados de perfil (nome, e-mail, senha e moeda padrão).
+
+O usuário consegue alterar os dados permitidos e visualizar as informações atualizadas no perfil.
+
+RF05
+
+O sistema deve permitir cadastrar contas financeiras como categorias de organização (ex.: “Cartão Nubank”, “Carteira”, “Conta corrente”), sem qualquer vínculo ou sincronização com bancos reais.
+
+O usuário consegue criar uma conta financeira e identificá-la no sistema sem integração bancária.
+
+RF06
+
+O sistema deve permitir editar uma conta financeira.
+
+Uma conta cadastrada pode ter seus dados alterados e as mudanças são exibidas corretamente.
+
+RF07
+
+O sistema deve exibir o saldo atual e projetado de cada conta, calculado exclusivamente a partir dos lançamentos inseridos manualmente pelo usuário.
+
+Ao inserir ou alterar lançamentos, os saldos atual e projetado são recalculados conforme as regras definidas.
+
+RF08
+
+O sistema deve permitir cadastrar transações manualmente, com valor, data, categoria e conta.
+
+Uma transação válida pode ser cadastrada com todos os campos obrigatórios e aparece no histórico.
+
+RF09
+
+O sistema deve permitir classificar transações em categorias e subcategorias (padrão ou personalizadas).
+
+O usuário consegue selecionar ou criar uma categoria/subcategoria e associá-la à transação.
+
+RF10
+
+O sistema deve permitir editar e excluir transações, respeitando as regras de parcelamento.
+
+Uma transação pode ser editada ou excluída conforme as regras de negócio aplicáveis ao seu tipo.
+
+RF11
+
+O sistema deve permitir marcar uma transação como “paga/recebida” ou “pendente”.
+
+O status da transação pode ser alterado e o sistema passa a considerá-lo nos cálculos correspondentes.
+
+RF12
+
+O sistema deve permitir filtrar transações por status e por categoria.
+
+Ao aplicar um filtro, somente as transações correspondentes aos critérios selecionados são exibidas.
+
+RF13
+
+O sistema deve permitir cadastrar uma despesa parcelada, informando valor total, número de parcelas e data da primeira parcela.
+
+O usuário informa os dados obrigatórios e o sistema registra o parcelamento de acordo com as regras definidas.
+
+RF14
+
+O sistema deve gerar automaticamente as parcelas futuras vinculadas à compra original.
+
+Após o cadastro de um parcelamento, suas parcelas futuras são criadas e vinculadas à compra-mãe.
+
+RF15
+
+O sistema deve permitir visualizar os compromissos futuros (parcelas e contas a vencer) em lista ou calendário.
+
+O usuário consegue consultar os compromissos futuros nas visualizações disponíveis.
+
+RF16
+
+O sistema deve permitir cadastrar despesas/receitas recorrentes (aluguel, assinatura, salário), com periodicidade.
+
+O usuário consegue cadastrar uma recorrência informando sua periodicidade e demais dados necessários. 
+
+RF17
+
+O sistema deve gerar automaticamente os lançamentos futuros de itens recorrentes.
+
+Os lançamentos futuros são criados conforme a periodicidade cadastrada.
+
+RF18
+
+O sistema deve permitir pausar ou encerrar uma recorrência.
+
+O usuário consegue pausar ou encerrar uma recorrência e novos lançamentos deixam de ser gerados conforme a ação.
+
+RF19
+
+O sistema deve notificar o usuário sobre pendências com vencimento próximo, em prazo configurável.
+
+O usuário recebe uma notificação dentro do prazo configurado antes do vencimento.
+
+RF20
+
+O sistema deve notificar o usuário sobre pendências vencidas e não pagas.
+
+Uma pendência vencida e não paga gera a notificação prevista nas regras de negócio.
+
+RF21
+
+O sistema deve permitir definir um orçamento (limite de gasto) mensal por categoria.
+
+O usuário consegue definir um limite mensal para uma categoria e visualizar o orçamento cadastrado.
+
+RF22
+
+O sistema deve alertar o usuário ao atingir ou ultrapassar o orçamento.
+
+Ao atingir ou ultrapassar o limite definido, o sistema apresenta o alerta correspondente.
+
+RF23
+
+O sistema deve exibir um dashboard consolidado com saldo, receitas, despesas e próximos vencimentos.
+
+O dashboard apresenta os indicadores e próximos vencimentos com base nos dados cadastrados.
+
+RF24
+
+O sistema deve exibir gráficos de gastos por categoria e evolução mensal.
+
+Os gráficos são gerados com os lançamentos cadastrados e permitem visualizar os gastos por categoria e por período.
+
+REQUISITOS NÃO FUNCIONAIS DO SISTEMA
+
+ID
+
+Descrição do Requisito / Regra
+
+Critério de Aceite /Observação
+
+RNF01
+
+As senhas devem ser armazenadas com hash seguro (bcrypt/argon2), nunca em texto plano.
+
+Em uma inspeção do armazenamento, as senhas não aparecem em texto plano e utilizam algoritmo de hash seguro.
+
+RNF02
+
+Toda comunicação entre cliente e servidor deve usar HTTPS/TLS.
+
+As requisições entre cliente e servidor utilizam conexão protegida por HTTPS/TLS.
+
+RNF03
+
+O sistema deve garantir isolamento total dos dados entre usuários (cada um só acessa os próprios dados).
+
+Ao acessar a conta, um usuário não consegue consultar, alterar ou excluir dados pertencentes a outro usuário.
+
+RNF04
+
+O sistema deve estar em conformidade com a LGPD (consentimento, exclusão e portabilidade de dados).
+
+O sistema disponibiliza mecanismos compatíveis com as obrigações definidas para tratamento e gerenciamento dos dados pessoais.
+
+RNF05
+
+O sistema deve realizar backup automático periódico do banco de dados.
+
+Os backups são executados automaticamente conforme a periodicidade definida e podem ser verificados.
+
+RNF06
+
+A interface deve ser responsiva, funcionando bem em desktop e mobile via navegador.
+
+As principais telas permanecem utilizáveis e adaptadas em diferentes tamanhos de tela.
+
+RNF07
+
+O fluxo de cadastro de uma transação deve ser executável em no máximo 3 cliques a partir da tela inicial.
+
+Em um teste de uso, o cadastro de uma transação pode ser iniciado e concluído em até 3 cliques a partir da tela inicial, desconsiderando o preenchimento dos campos.
+
+RNF08
+
+O backend deve ser desenvolvido em Python (Django ou FastAPI), com banco de dados relacional (PostgreSQL recomendado).
+
+A implementação do backend utiliza Python com Django ou FastAPI e um banco de dados relacional.
+
+RNF09
+
+As regras de negócio críticas devem possuir cobertura de testes automatizados.
+
+Os testes automatizados cobrem as regras de negócio críticas definidas para o sistema.
+
+RNF10
+
+As regras de negócio críticas devem possuir cobertura de testes automatizados.
+
+As operações de criação, edição e exclusão de transações ficam registradas em log de auditoria.
+
+RNF11
+
+Falhas no envio de notificações não devem comprometer o funcionamento do restante do sistema.
+
+Caso uma notificação falhe, as demais funcionalidades continuam operando normalmente.
+
+REGRAS DE NEGÓCIO
+
+ID
+
+Descrição do Requisito / Regra
+
+Critério de Aceite /Observação
+
+   RN01
+
+Toda transação deve pertencer a exatamente uma conta financeira e a exatamente uma categoria.
+
+O sistema impede o salvamento de transações sem uma conta e uma categoria válidas.
+
+RN02
+
+Uma transação não pode ter valor igual a zero.
+
+O sistema rejeita o cadastro ou alteração de uma transação com valor igual a zero.
+
+RN03
+
+Transações com data futura entram automaticamente como “Pendente”; transações com data igual ou anterior a hoje podem já ser cadastradas como “Paga/Recebida”.
+
+O status inicial é definido conforme a data informada, respeitando a regra estabelecida.
+
+RN04
+
+O saldo de uma conta é calculado como saldo inicial + receitas pagas − despesas pagas; o saldo projetado soma também as pendências futuras.
+
+O saldo de uma conta é calculado como saldo inicial + receitas pagas − despesas pagas; o saldo projetado soma também as pendências futuras.
+
+RN05
+
+Ao parcelar uma compra, o valor total é dividido igualmente pelo número de parcelas; eventual resto da divisão é ajustado na última parcela.
+
+A soma das parcelas corresponde exatamente ao valor total da compra, considerando o ajuste na última parcela quando necessário.
+
+RN06
+
+Cada parcela gerada é uma transação individual vinculada a uma “compra-mãe”, permitindo exibir, por exemplo, “Parcela 3/12”.
+
+As parcelas possuem vínculo com a compra original e exibem sua posição no parcelamento.
+
+RN07
+
+Ao excluir um parcelamento, o sistema deve permitir excluir apenas as parcelas futuras não pagas ou o parcelamento inteiro — a segunda opção exige confirmação explícita se já houver parcelas pagas.
+
+As opções de exclusão respeitam o status das parcelas e solicitam confirmação quando houver parcelas pagas.
+
+RN08
+
+Uma parcela já paga não pode ter valor ou data alterados; qualquer correção exige um lançamento de estorno, preservando o histórico.
+
+O sistema bloqueia a alteração direta da parcela paga e permite registrar um estorno para correção.
+
+RN09
+
+Os lançamentos futuros de itens recorrentes são gerados automaticamente, mantendo uma antecedência mínima configurável (ex.: sempre os próximos 3 meses).
+
+O sistema mantém lançamentos futuros dentro da antecedência configurada.
+
+RN10
+
+A alteração de valor em um item recorrente (ex.: reajuste de aluguel) afeta apenas os lançamentos futuros a partir da mudança, nunca os já gerados ou pagos.
+
+Lançamentos anteriores permanecem inalterados e os futuros passam a utilizar o novo valor.
+
+RN11
+
+Uma pendência deve gerar notificação em uma janela configurável antes do vencimento (padrão sugerido: 3 dias e 1 dia antes).
+
+As notificações são geradas nos prazos configurados antes do vencimento.
+
+RN12
+
+Uma pendência vencida e não paga deve notificar o usuário no dia seguinte ao vencimento e, depois, semanalmente, até ser quitada ou cancelada.
+
+O sistema envia as notificações previstas até que a pendência seja quitada ou cancelada.
+
+RN13
+
+Categorias padrões do sistema não podem ser excluídas, apenas ocultadas; categorias personalizadas só podem ser excluídas se não houver transações vinculadas.
+
+O sistema bloqueia exclusões que violem essas condições.
+
+RN14
+
+Nenhum dado é obtido automaticamente de bancos, cartões ou instituições financeiras; toda informação (contas, gastos, parcelas, recorrências) tem origem exclusivamente no cadastro manual do usuário, e o saldo exibido é sempre uma estimativa baseada nesses dados, não um saldo bancário real.
+
+O sistema não realiza sincronização financeira e os dados e saldos apresentados podem ser rastreados aos lançamentos cadastrados manualmente.
+
+REQUISITOS DE PRODUTO
+
+REQUISITOS ORGANIZACIONAIS
+
+REQUISITOS EXTERNOS
+
+MATRIZ DO MANIFESTO ÁGIL
+
+MATRIZ DA EQUIPE
+
+Valor Original do
+
+Manifesto
+
+Tradução para a Realidade do Nosso Projeto
+
+Ação Concreta da Equipe (Como aplicaremos)
+
+Antipadrão a Evitar (O que NÃO faremos)
+
+1. Indivíduos e interações mais que processos e ferramentas
+
+Priorizar a comunicação e a colaboração entre os integrantes para resolver rapidamente dúvidas, erros e dificuldades do sistema. 
+
+Realizar alinhamentos frequentes e curtos entre os integrantes; usar comunicação direta, dividir tarefas e revisar decisões. 
+
+Esperar reuniões formais para comunicar problemas, trabalhar isoladamente ou culpar ferramentas quando uma tarefa não avançar. 
+
+2. Software em funcionamento mais que documentação abrangente
+
+Priorizar a construção de funcionalidades do sistema que possam ser executadas e demonstradas, sem deixar a documentação impedir a evolução dele. 
+
+Implementar e testar as funcionalidades prioritárias em pequenas entregas, contas, parcelamentos, recorrências e visualização de compromissos.
+
+Passar semanas produzindo documentação detalhada antes de ter uma funcionalidade funcionando ou considerar diagramas como substitutos do software executável. 
+
+3. Colaboração com o cliente mais que negociação de contratos
+
+Considerar as necessidades e feedbacks dos usuários para validar se o sistema realmente resolve o problema de organização financeira identificado.
+
+Validar protótipos e funcionalidades com usuários e utilizar os feedbacks para melhorar as próximas entregas.
+
+Não considerar o escopo inicial como definitivo quando os testes ou feedbacks demonstrarem que uma mudança é necessária.
+
+4. Responder a mudanças mais que seguir um plano
+
+Permitir ajustes nas funcionalidades e prioridades conforme novos aprendizados sobre as necessidades dos usuários.
+
+Reavaliar e priorizar o backlog ao final de cada ciclo, considerando feedbacks, dificuldades técnicas e prioridades do MVP.
+
+Não manter uma funcionalidade apenas porque estava no planejamento inicial quando ela deixar de ser relevante ou precisar ser modificada.
+
+SELEÇÃO DE PRINCÍPIOS
+
+Princípio 1 (Satisfação do Cliente): Nossa maior prioridade é satisfazer o cliente através da entrega contínua e adiantada de software com valor agregado.
+
+Princípio 6 (Comunicação Cara a Cara): O método mais eficiente e eficaz de transmitir informações para e entre uma equipe de desenvolvimento é a conversa face a face.
+
+Princípio 12 (Reflexão e Ajuste): Em intervalos regulares, a equipe reflete sobre como se tornar mais eficaz e, então, refina e ajusta seu comportamento de acordo.
+
+PROPOSTA INCREMENTAL DE SOFTWARE
+
+ DESENVOLVIMENTO INCREMENTAL E FATIAMENTO DO ESCOPO
+
+ELEMENTO DA FICHA
+
+INCREMENTO 1 (BASE/MVP)
+
+INCREMENTO 2 (EXPANSÃO)
+
+INCREMENTO 3 (OTIMIZAÇÃO)
+
+NOME DO INCREMENTO 
+
+E OBJETIVO CENTRAL
+
+MVP Financeiro Básico:Permitir cadastro e acompanhamento de contas e transações, centralizando as informações financeiras manuais em um único ambiente.
+
+Parcelamentos e Compromissos Futuros:Ampliar o controle financeiro com compras parceladas, compromissos futuros, alertas, orçamento e visualizações de gastos.
+
+Recorrências e Otimização do Controle: Automatizar despesas e receitas recorrentes e consolidar a experiência, segurança, qualidade e acompanhamento do sistema.
+
+LISTA DE FUNCIONALIDADES TÉCNICAS E REGRAS DE NEGÓCIO
+
+• RF01 – Cadastro de usuário. • RF02 – Login/logout. • RF04 – Edição de perfil. • RF05/RF06 – Cadastro e edição de contas financeiras. • RF07 – Saldo atual e projetado. • RF08 – Cadastro manual de transações. • RF09 – Categorias e subcategorias. • RF10 – Editar/excluir transações. • RF11 – Pago/recebido ou pendente. • RF12 – Filtros por status/categoria. • RF23 – Dashboard consolidado.
+
+• RF03 – Recuperação de senha. • RF13 – Cadastro de despesas parceladas. • RF14 – Geração de parcelas futuras. • RF15 – Lista/calendário de compromissos. • RF19/RF20 – Notificações de vencimento. • RF21 – Orçamento mensal por categoria. • RF22 – Alertas de orçamento. • RF24 – Gráficos por categoria/evolução mensal.
+
+• RF16 – Cadastro de despesas/receitas recorrentes. • RF17 – Geração automática de lançamentos futuros. • RF18 – Pausar/encerrar recorrência. • Consolidação do dashboard e compromissos recorrentes. • Aplicação e validação dos RNFs de segurança, LGPD, responsividade, testes, backup e auditoria.
+
+REGRAS DE NEGÓCIO ASSOCIADAS
+
+• RN01 – Toda transação pertence a uma conta e categoria. • RN02 – Valor não pode ser zero. • RN03 – Data futura inicia como pendente. • RN04 – Cálculo do saldo atual e projetado. • RN13 – Regras para exclusão de categorias. • RN14 – Dados exclusivamente manuais.
+
+• RN05 – Divisão do valor entre parcelas. • RN06 – Parcela individual vinculada à compra-mãe. • RN07 – Exclusão de parcelamento conforme status. • RN08 – Parcela paga não pode ser alterada diretamente. • RN11 – Notificações antes do vencimento. • RN12 – Notificações após vencimento.
+
+• RN09 – Geração antecipada de lançamentos recorrentes. • RN10 – Alteração de recorrência afeta somente lançamentos futuros. • RN14 – Sem sincronização financeira automática.
+
+JUSTIFICATIVA DO VALOR DE NEGÓCIO
+
+• RF16 – Cadastro de despesas/receitas recorrentes. • RF17 – Geração automática de lançamentos futuros. • RF18 – Pausar/encerrar recorrência. • Consolidação do dashboard e compromissos recorrentes. • Aplicação e validação dos RNFs de segurança, LGPD, responsividade, testes, backup e auditoria.
+
+Com a base funcionando, o usuário passa a enxergar o que ainda irá pagar e consegue planejar melhor seus meses. Parcelamentos, vencimentos, orçamento e gráficos ampliam o valor do sistema sem alterar a base do MVP.
+
+As recorrências automatizam compromissos repetitivos e reduzem o trabalho manual. A etapa também consolida melhorias de qualidade, segurança e confiabilidade, aproveitando a base já validada e os aprendizados dos incrementos anteriores.
+
+ PILARES E VALORES DO SCRUM
+
+PILARES DO SCRUM
+
+PILAR DO SCRUM
+
+DEFINIÇÃO TEÓRICA
+
+REGRA DE TRABALHO DO TIME
+
+COMO GARANTIMOS NO DIA A DIA?
+
+ANTIPADRÃO A EVITAR
+
+TRANSPARÊNCIA
+
+Tornar visíveis os aspectos do processo a todos os responsáveis pelo resultado.
+
+O andamento das tarefas, problemas e decisões do projeto deve estar visível para toda a equipe.
+
+Manter o quadro de tarefas atualizado e comunicar impedimentos assim que surgirem.
+
+Esconder atrasos ou problemas e informar a equipe somente quando a entrega estiver comprometida.
+
+INSPEÇÃO
+
+Avaliar frequentemente o progresso e os artefatos para identificar desvios.
+
+A equipe deve revisar regularmente o funcionamento do sistema e o andamento das atividades.
+
+Realizar revisões ao final de cada ciclo e testar as funcionalidades desenvolvidas, principalmente as regras de parcelamento e consolidação.
+
+Deixar os testes e revisões para o final do projeto.
+
+ADAPTAÇÃO
+
+Ajustar o processo ou o produto imediatamente quando um desvio for detectado.
+
+A equipe poderá alterar prioridades, tarefas ou soluções quando novas informações demonstrarem que uma mudança é necessária.
+
+Reorganizar o backlog e redistribuir tarefas quando houver dificuldades técnicas, mudanças de prioridade ou feedback dos usuários.
+
+Manter uma decisão ou planejamento que já demonstrou ser inadequado apenas para seguir o plano original.
+
+VALORES DO SCRUM 
+
+VALOR DO SCRUM
+
+O QUE SIGNIFICA PARA A NOSSA EQUIPE?
+
+ATITUDE CONCRETA NO DIA A DIA
+
+ANTIPADRÃO A EVITAR
+
+COMPROMETIMENTO
+
+Assumir responsabilidade coletiva pelo desenvolvimento e pela entrega do Organizador Financeiro.
+
+Ajudar integrantes que estejam com dificuldades e trabalhar em conjunto para atingir a meta da Sprint.
+
+Pensar apenas na própria tarefa e ignorar problemas que afetem o projeto como um todo.
+
+FOCO
+
+Concentrar os esforços nas funcionalidades prioritárias definidas para cada ciclo.
+
+Trabalhar primeiro nas funcionalidades planejadas para a Sprint, priorizando o MVP.
+
+Adicionar novas ideias ou funcionalidades durante a Sprint sem avaliar seu impacto no escopo.
+
+ABERTURA
+
+Comunicar de forma transparente o progresso, as dificuldades e os problemas encontrados.
+
+Informar rapidamente ao grupo quando houver bloqueios, erros ou dificuldades técnicas.
+
+Esconder problemas ou fingir que uma tarefa está avançando quando está parada.
+
+RESPEITO
+
+Valorizar as opiniões, conhecimentos e contribuições de todos os integrantes.
+
+Ouvir as sugestões da equipe, discutir divergências de forma profissional e dividir conhecimentos.
+
+Desconsiderar opiniões, interromper colegas ou atribuir culpa quando ocorrerem erros.
+
+CORAGEM
+
+Ter disposição para questionar decisões, reconhecer problemas e propor mudanças quando necessário.
+
+Comunicar erros, questionar funcionalidades inviáveis e propor alterações no planejamento quando necessário.
+
+Aceitar decisões inadequadas ou problemas técnicos apenas para evitar conflitos.
+
+MAPEAMENTO DE PERFIL E MATRIZ T-SHAPE 
+
+HABILIDADES TÉCNICAS 
+
+HABILIDADE / INTEGRANTE
+
+AMANDA
+
+GABRIELLE
+
+MILENA
+
+ANDRÉA
+
+LINGUAGENS DE PROGRAMAÇÃO
+
+Java , Dart(projetos no NetBeans, POO), Python (básico)
+
+Dart, Python (básico)
+
+Dart, JavaScript, Python (básico)
+
+Python, Java, Dart
+
+FRAMEWORKS
+
+Spring Tools for Eclipse (uso breve), Flutter(básico)
+
+Flutter (em aprendizado)
+
+Flutter (básico)
+
+Flutter (básico)
+
+VERSIONAMENTO (GIT)
+
+Git/GitHub
+
+(básico)
+
+Git/GitHub (básico)
+
+Git/GitHub (básico)
+
+Git/GitHub (Intermediário)
+
+BANCO DE DADOS
+
+MySQL e PostgreSQL
+
+MySQL e PostgreSQL
+
+MySQL e PostgreSQL
+
+MySQL e PostgreSQL
+
+DOCUMENTAÇÃO / FLUXOGRAMAS
+
+Experiência com fluxogramas e modelo lógico
+
+Fluxogramas, documentação de projetos e diagramas
+
+Documentação de projetos, fluxogramas
+
+Fluxogramas, diagramas, documentação
+
+METODOLOGIAS ÁGEIS 
+
+Scrum e Kanban
+
+(básico)
+
+Manifesto Ágil (conhecimento básico)
+
+Scrum (básico)
+
+Scrum e Kanban
+
+HABILIDADES COMPORTAMENTAIS
+
+HABILIDADE / INTEGRANTE
+
+AMANDA
+
+GABRIELLE
+
+MILENA
+
+ANDRÉA
+
+ORGANIZAÇÃO
+
+Antecedência é preferível para um desenvolvimento tranquilo
+
+Ajuda na divisão de tarefas, no cumprimento de prazos e na organização do grupo.
+
+Preocupação com prazos e foco em divisão de tarefas.
+
+Boa capacidade de organizar informações, etapas e requisitos de projetos.
+
+MEDIAÇÃO DE CONFLITOS
+
+Comunicação em primeiro lugar e buscar se colocar no lugar do outro são passos principais para um grupo equilibrado
+
+Conversar e compreender o próximo é essencial para uma boa dinâmica em grupo
+
+Escuta ativa, auxílio no alinhamento de opiniões.
+
+Capacidade de analisar dificuldades e conflitos e buscar soluções práticas.
+
+LIDERANÇA
+
+Comunicação ativa durante os processos, dúvidas sempre são válidas
+
+Essencial para orientar o grupo, dividir responsabilidades e alcançar objetivos em conjunto.
+
+Consegue orientar colegas e manter o foco nos objetivos da equipe.
+
+Iniciativa para assumir responsabilidades e contribuir para o direcionamento do grupo.
+
+FACILITAÇÃO
+
+Boa comunicação e adaptabilidade para as diversidades que envolvem o grupo
+
+Ajuda o grupo a trabalhar de forma organizada, colaborativa e eficiente.
+
+Facilidade em conduzir discussões de grupo e apresentações.
+
+Contribuir para organizar discussões, alinhar ideias e ajudar a equipe a chegar a decisões de forma objetiva.
+
+TRABALHO EM EQUIPE
+
+Colaboração, criatividade e organização
+
+Colaborar, compartilhar ideias e alcançar objetivos em conjunto.
+
+Ouve diferentes opiniões.
+
+Disposição para colaborar e dividir responsabilidades.
+
+ALUNO
+
+ÁREA DE CONHECIMENTO PROFUNDO
+
+(HASTE VERTICAL)
+
+ÁREAS DE CONHECIMENTO GERAL
+
+(HASTE HORIZONTAL)
+
+GAPS / A DESENVOLVER
+
+AMANDA
+
+Banco de dados (MySQL, PostgreSQL) / Fluxogramas / Java (POO, NetBeans)
+
+Java/Python/Dart, noções de Scrum e Kanban
+
+Aprofundar Git/versionamento, JavaScript e banco de dados
+
+GABRIELLE
+
+Python/Banco de dados (MySQL) / Java (POO, NetBeans) / Dart (Flutter)
+
+Python / JavaScript / Engenharia de Software / Desenvolvimento de Software
+
+Aprofundar Flutter, Git/GitHub, JavaScript, aprimorar  banco de dados.
+
+MILENA
+
+Banco de dados (MySQL, PostgreSQL) / Java / Pyhton
+
+Dart / Scrum / Python / JavaScript
+
+Git/GitHub, Flutter 
+
+ANDRÉA
+
+Python / Java / Banco de dados(SQL) / Git
+
+Dart / Arquitetura de Software / UI/UX / Machine Learning / Métodos Ágeis
+
+JavaScript, HTML, Scrum
+
+MAPEAMENTO T-SHAPE
+
+FUNÇÕES E TERMO DE COMPROMISSO 
+
+PAPEL
+
+RESPONSÁVEL
+
+JUSTIFICATIVA 
+
+(COM BASE NO T-SHAPE)
+
+PRODUCT OWNER
+
+(PO)
+
+Andréa
+
+Bom envolvimento com requisitos, definição de escopo, organização de funcionalidades e estruturação do projeto e facilidade em transitar entre a parte técnica e a visão do produto.
+
+SCRUM MASTER
+
+(SM)
+
+Amanda
+
+Facilitação e organização de equipes, com conhecimento geral em programação, banco de dados e metodologias ágeis.
+
+DEVELOPER 1
+
+Gabrielle
+
+Boa organização, facilidade em trabalhar em equipe, conhecimento em programação e desenvolvimento de software.
+
+DEVELOPER 2
+
+Milena
+
+Boa capacidade de cumprimento de prazos, facilidade em alinhar opiniões, domínio em banco de dados e documentação de projetos 
+
+Contrato de Convivência (Team Agreement):
+
+Pontualidade: Todos os integrantes devem cumprir os prazos definidos pela equipe e avisar antecipadamente caso exista algum impedimento.
+
+Divisão de tarefas: As tarefas serão distribuídas considerando as habilidades de cada integrante, mas todos devem colaborar quando houver dificuldades ou sobrecarga de outro membro.
+
+O que fazer caso um membro não entregue sua parte: Em caso de não entrega, comunicar a equipe para reorganizar ou redistribuir a tarefa. 
+
+ 
+
+RESOLUÇÃO DE CENÁRIOS CRÍTICOS E CONFLITOS DE PAPÉIS
+
+CENÁRIO A — SOBRECARGA E GARGALO
+
+O desenvolvedor responsável pelo banco de dados faltou na semana da entrega de um módulo.
+
+De quem é a responsabilidade de reorganizar o trabalho?
+
+RESPOSTA DO GRUPO: A reorganização do trabalho deve ser feita pelos Developers, que podem redistribuir as tarefas entre os integrantes. 
+
+O que o Scrum Master faz nessa situação?
+
+RESPOSTA DO GRUPO: O Scrum Master identifica o impedimento, facilita a reorganização das tarefas e ajuda a remover o bloqueio.
+
+O que o Product Owner faz nessa situação?
+
+RESPOSTA DO GRUPO: O PO mantém o foco no valor do produto e pode ajudar a definir quais funcionalidades são mais importantes caso seja necessário reduzir o escopo da Sprint.
+
+CENÁRIO B — MUDANÇA DE ESCOPO
+
+O professor (stakeholder) pede uma nova funcionalidade no meio da aula.
+
+O desenvolvedor pode aceitar diretamente e começar a codificar?
+
+RESPOSTA DO GRUPO: O desenvolvedor não deve aceitar diretamente e começar a codificar.
+
+Qual é o fluxo correto dentro do Scrum para essa mudança?
+
+RESPOSTA DO GRUPO: A solicitação deve ser encaminhada ao Product Owner, que avaliará sua prioridade e poderá inclui-la no Product Backlog. A equipe então avalia quando ela poderá ser desenvolvida, considerando as prioridades e o impacto na Sprint atual.
+
+CENÁRIO C — DIVERGÊNCIA TÉCNICA VS. PRAZO
+
+Os Developers querem refatorar todo o código para usar uma arquitetura mais moderna, mas o PO lembra que a entrega é no final da aula.
+
+Como a equipe resolve esse conflito sem comprometer a qualidade ou o prazo?
+
+RESPOSTA DO GRUPO:  Os Developers devem avaliar a necessidade e o impacto da refatoração, enquanto o PO considera sua influência na entrega e no valor do produto. O Scrum Master facilita a discussão. 
+
+Se a refatoração não for essencial para a qualidade da entrega, ela pode ser planejada para uma Sprint futura, priorizando o cumprimento do prazo sem comprometer o funcionamento do sistema.
+
+CONSOLIDAÇÃO DE GOVERNANÇA DA EQUIPE
+
+PAPEL
+
+INTEGRANTE
+
+ESPECIALIDADE T-SHAPE
+
+PO
+
+Andréa 
+
+Desenvolvimento de Software e Engenharia de Software, com conhecimentos em Java, banco de dados, requisitos, documentação, IA e métodos ágeis.
+
+SM
+
+Amanda
+
+Boa comunicação, organização e capacidade de mediar conflitos, Desenvolvimento em Banco de dados, conhecimentos gerais Python/Java/Dart
+
+DEVELOPER 1
+
+Gabrielle
+
+Conhecimento em Python e lógica de programação, com conhecimentos gerais em Dart, Flutter e documentação/fluxogramas.S
+
+DEVELOPER 2
+
+Milena
+
+Desenvolvimento em Banco de dados e documentação/fluxogramas de projeto, conhecimento geral em Dart e JavaScript. 
+
+Team Agreement
+
+1. Pontualidade
+
+Todos devem cumprir os prazos definidos pela equipe. Caso surja algum impedimento, o integrante deve comunicar o grupo com antecedência.
+
+2. Divisão de tarefas
+
+As tarefas serão distribuídas considerando as habilidades e disponibilidade de cada integrante, mantendo a colaboração entre todos.
+
+3. Não entrega de uma tarefa
+
+Caso um integrante não consiga concluir sua tarefa, deverá comunicar a equipe. O grupo avaliará a situação e poderá auxiliar ou redistribuir a atividade para evitar impactos na Sprint.
+
+Compromisso da equipe:
+
+Todos os integrantes se comprometem a colaborar para o cumprimento das metas do projeto, mantendo comunicação, respeito e responsabilidade durante o desenvolvimento.
+
+Integrante
+
+Papel
+
+Assinatura
+
+Andréa Ortega
+
+Product Owner
+
+Andrea Ortega
+
+Amanda Nunes
+
+Scrum Master
+
+Amanda Nunes
+
+Gabrielle Alves
+
+Developer
+
+Gabrielle Alves
+
+Milena Kaori
+
+Developer
+
+Milena Kaori
+
+MAPEAMENTO DE VALOR E ESTRUTURAÇÃO DO PRODUCT BACKLOG
+
+ Definição da Meta do Produto (Product Goal)
+
+Desenvolver uma aplicação que permita organizar, consolidar e monitorar compromissos financeiros, oferecendo ao usuário uma visão clara dos gastos atuais e futuros em um único ambiente.
+
+ Decomposição Hierárquica
+
+ÉPICO PRINCIPAL: GESTÃO E ORGANIZAÇÃO FINANCEIRA
+
+Permitir que o usuário registre diferentes tipos de compromissos financeiros e acompanhe seus valores, vencimentos, parcelas e pagamentos em uma visão consolidada.
+
+Features:
+
+Feature 1 - Gestão de Contas e Compromissos
+
+Cadastro de contas; 
+
+Registro de valor, categoria e vencimento; 
+
+Controle de status; 
+
+Histórico de pagamentos; 
+
+Contas recorrentes.
+
+Feature 2 — Gestão de Cartões e Parcelamentos
+
+Cadastro de cartões; 
+
+Registro de compras; 
+
+Controle de parcelas; 
+
+Geração de compromissos futuros; 
+
+Organização das compras em faturas. 
+
+Feature 3 — Visão Financeira Consolidada
+
+Dashboard financeiro; 
+
+Total de compromissos no período; 
+
+Valores por cartão e categoria; 
+
+Próximos vencimentos; 
+
+Parcelamentos futuros.
+
+ User Stories Priorizadas
+
+US01 — Cadastrar compromisso
+
+Como usuário, eu quero cadastrar minhas contas e compromissos financeiros, para que eu possa organizar e acompanhar meus pagamentos em um único lugar.
+
+US02 — Registrar compra parcelada
+
+Como usuário, eu quero registrar compras realizadas no cartão e informar o número de parcelas, para que o sistema distribua o valor da compra entre os períodos correspondentes.
+
+US03 — Visualizar compromissos consolidados
+
+Como usuário, eu quero visualizar meus compromissos financeiros consolidados, para que eu possa compreender quanto tenho comprometido no período atual e nos próximos períodos.
+
+ Critérios de Aceite – US01
+
+CA01: O sistema deve permitir cadastrar uma conta informando valor, vencimento e categoria.
+
+CA02: O compromisso cadastrado deve ser apresentado com seu respectivo status: pendente, pago ou atrasado.
+
+CA03: O compromisso deve ficar disponível para consulta e acompanhamento no sistema.
+
+ Checklist INVEST
+
+US01 – CADASTRO DE COMPROMISSOS
+
+Critério
+
+Avaliação
+
+I – Independent
+
+Pode ser desenvolvida de forma independente e serve como base para outras funcionalidades.
+
+N – Negotiable
+
+Os detalhes dos campos e da apresentação podem ser discutidos pela equipe.
+
+V – Valuable
+
+Permite ao usuário organizar seus compromissos financeiros em um único local.
+
+E – Estimable
+
+O escopo e os requisitos necessários estão definidos e podem ser estimados.
+
+S – Small
+
+Possui um objetivo específico e delimitado.
+
+T – Test
+
+É possível verificar se o compromisso foi cadastrado e está disponível para utilização.
+
+US02 – REGISTRO DE COMPRAS PARCELADAS
+
+Critério
+
+Avaliação
+
+I – Independent
+
+Pode ser desenvolvida após o cadastro dos cartões, utilizando-os como referência.
+
+N – Negotiable
+
+A forma de preenchimento e apresentação dos dados pode ser ajustada pela equipe.
+
+V – Valuable
+
+É essencial para que o usuário consiga registrar e acompanhar suas compras parceladas e compromissos futuros.
+
+E – Estimable
+
+Os dados e regras necessários para a funcionalidade estão definidos.
+
+S – Small
+
+O objetivo está concentrado no registro de compras e na geração de suas parcelas.
+
+T – Test
+
+É possível testar o cadastro da compra, o cálculo das parcelas e a geração dos compromissos futuros.
+
+US03 – VISÃO FINANCEIRA CONSOLIDADA
+
+Critério
+
+Avaliação
+
+I – Independent
+
+Pode ser desenvolvida como uma funcionalidade específica de visualização, utilizando os dados já cadastrados.
+
+N – Negotiable
+
+A forma de apresentação das informações pode ser definida e ajustada pela equipe.
+
+V – Valuable
+
+Ajuda o usuário a compreender sua situação financeira de maneira rápida e centralizada.
+
+E – Estimable
+
+Os dados que devem ser apresentados estão definidos, permitindo estimar o desenvolvimento.
+
+S – Small
+
+O escopo está concentrado na apresentação consolidada das informações financeiras.
+
+T – Test
+
+É possível comparar as informações do dashboard com os compromissos cadastrados e verificar se os valores estão corretos.
+
+APLICAÇÃO DoD E DoR
+
+ CONTRATO DE QUALIDADE (DoD) 
+
+Critérios de Aceitação: a funcionalidade atende 100% dos critérios de aceitação definidos para a User Story. 
+
+Qualidade do Código & Peer Review: o código foi revisado por outro integrante da equipe e respeita os padrões definidos para o projeto. 
+
+Testes Automatizados & Cobertura: os testes previstos foram realizados e a cobertura definida pela equipe foi atingida. 
+
+Integração Contínua (CI/CD): a funcionalidade foi integrada ao projeto e o pipeline de CI/CD foi executado sem falhas. 
+
+Integração do Sistema: a nova funcionalidade não compromete as funcionalidades já existentes.
+
+ CRITÉRIOS DE ENTRADA (DoR)
+
+Possuir descrição clara, regras de negócio e critérios de aceitação sem ambiguidades.
+
+Ter o modelo de dados necessário para a funcionalidade previamente definido.
+
+Ter suas dependências técnicas e funcionais identificadas.
+
+Possuir protótipo ou fluxo da interface definido, quando aplicável.
+
+Ter contratos ou endpoints de API definidos quando houver integração externa.
+
+Possuir escopo compreendido pela equipe e adequado para estimativa e desenvolvimento dentro da Sprint.
+
+ APLICAÇÃO DO CHECKLIST 
+
+US01 – Cadastro de Compromissos: Como usuário, eu quero cadastrar minhas contas e compromissos financeiros, para que eu possa organizar e acompanhar meus pagamentos em um único lugar.
+
+Dimensão Técnica
+
+Checklist Definition of Ready (DoR)
+
+Checklist Definition of Done (DoD)
+
+Regras & Escopo
+
+A história possui objetivo, regras de negócio e critérios de aceitação definidos e sem ambiguidade.
+
+A funcionalidade deverá atender 100% dos critérios de aceitação estipulados.
+
+Arquitetura & Código
+
+Os dados necessários para o cadastro dos compromissos estão definidos, incluindo valor, vencimento, categoria e status. Como o MVP prevê cadastro manual, não há integração externa de API necessária para esta funcionalidade.
+
+O código deverá passar por Peer Review e respeitar os padrões definidos para o projeto.
+
+Testes & Qualidade
+
+As dependências e os principais cenários de cadastro e consulta foram identificados e podem ser testados.
+
+A cobertura de testes definida pela equipe deverá ser atingida e o pipeline de CI/CD deverá passar sem falhas.
+
+Status DoR – US01: PRONTA PARA DESENVOLVIMENTO
+
+US02 — Registrar compra parcelada: Como usuário, eu quero registrar compras realizadas no cartão e informar o número de parcelas, para que o sistema distribua o valor da compra entre os períodos correspondentes.
+
+Dimensão Técnica
+
+Checklist Definition of Ready (DoR)
+
+Checklist Definition of Done (DoD)
+
+Regras & Escopo
+
+A história possui objetivo, regras para o parcelamento e critérios de aceitação definidos e sem ambiguidade.
+
+A funcionalidade deverá atender 100% dos critérios de aceitação estipulados.
+
+Arquitetura & Código
+
+Os dados necessários para relacionar cartão, compra e parcelas estão definidos. Como o MVP prevê cadastro manual, não há integração externa de API necessária para esta funcionalidade.
+
+O código deverá passar por Peer Review e respeitar os padrões definidos para o projeto.
+
+Testes & Qualidade
+
+As dependências e os principais cenários para validar o valor da compra, quantidade de parcelas e geração dos compromissos futuros foram identificados.
+
+A cobertura de testes definida pela equipe deverá ser atingida e o pipeline de CI/CD deverá passar sem falhas.
+
+Status DoR US01: PRONTA PARA DESENVOLVIMENTO
+
+A SPRINT E O SPRINT PLANNING
+
+  Meta da Sprint I
+
+Entregar uma primeira versão funcional do Organizador Financeiro que permita que o usuário cadastre manualmente suas contas e pendências financeiras, registrando valores, datas e categorias, para organizar seus compromissos e acompanhar o que precisa ser pago
+
+ DECOMPOSIÇÃO TÉCNICA DETALHADA 
+
+US01 — Cadastro de contas/pendências financeiras:
+
+Como usuário, eu quero cadastrar minhas contas e compromissos financeiros, para que eu possa organizar e acompanhar meus pagamentos em um único lugar.
+
+Sprint Backlog da US01
+
+ID
+
+Área
+
+Tarefa
+
+T01
+
+Banco de dados
+
+Criar tabela para armazenar as contas financeiras do usuário (nome/identificação, tipo, saldo inicial).
+
+T02
+
+Banco de dados
+
+Criar tabela para armazenar as pendências/contas a pagar.
+
+T03
+
+Banco de dados
+
+Definir relacionamento entre pendência e conta financeira.
+
+T04
+
+Backend/API
+
+Criar DTO para cadastro de conta financeira.
+
+T05
+
+Backend/API
+
+Criar DTO para cadastro de pendência financeira.
+
+T06
+
+Backend/API
+
+Definir endpoint para cadastro e listagem de contas financeiras.
+
+T07
+
+Backend/API
+
+Definir endpoint para cadastro, listagem e atualização de status das pendências.
+
+T08
+
+Frontend
+
+Criar formulário para cadastro de conta financeira.
+
+T09
+
+Frontend
+
+Criar formulário para cadastro de pendência (valor, vencimento, categoria, conta vinculada).
+
+T10
+
+Frontend
+
+Exibir lista de contas cadastradas e lista de contas cadastradas e lista de pendências com seus status (pago/pendente/atrasado).
+
+T11
+
+QA/Testes
+
+Criar teste automatizado para cadastro de uma conta financeira válida.
+
+T12
+
+QA/Testes
+
+Criar teste automatizado para cadastro de uma pendência.
+
+ 
+
+US02 — Registrar compra parcelada:
+
+Como usuário, eu quero registrar compras realizadas no cartão e informar o número de parcelas, para que o sistema distribua o valor da compra entre os períodos correspondentes.
+
+Sprint Backlog da US02
+
+ID
+
+Area
+
+Tarefa
+
+T13
+
+Banco de dados
+
+Criar estrutura/tabela para armazenar as compras parceladas
+
+T14
+
+Banco de dados
+
+Definir os campos da compra: descrição, valor total, data da compra, número de parcelas e cartão
+
+T15
+
+Banco de dados
+
+Criar estrutura para armazenar as parcelas vinculadas à compra
+
+T16
+
+Backend/API
+
+Definir a estrutura da compra parcelada no backend
+
+T17
+
+Backend/API
+
+Criar DTO para cadastro da compra parcelada
+
+T18
+
+Backend/API
+
+Definir endpoint para cadastro de compras parceladas
+
+T19
+
+Backend/API
+
+Definir regra para dividir o valor total entre as parcelas
+
+T20
+
+Frontend
+
+Definir regra para gerar as parcelas nos períodos correspondentes
+
+T21
+
+Frontend
+
+Criar formulário para registrar uma compra parcelada
+
+T22
+
+Frontend
+
+Criar campos para descrição, valor total, data, cartão e número de parcelas
+
+T23
+
+Frontend
+
+Exibir a divisão da compra nas parcelas correspondentes
+
+T24
+
+QA/Testes
+
+Criar teste automatizado para cadastro de uma compra parcelada válida
+
+T25
+
+QA/Testes
+
+Criar teste automatizado para verificar a divisão do valor entre as parcelas
+
+T26
+
+QA/Testes
+
+Criar teste automatizado para verificar a quantidade de parcelas geradas
+
+T27
+
+QA/Testes
+
+Criar teste automatizado para verificar se as parcelas são associadas à compra correta
+
+ INTERAÇÃO HUMANO COMPUTADOR (IHC)
+
+ Funcionalidade crítica 
+
+US01- Cadastro de compromissos
+
+Como usuário, eu quero cadastrar minhas contas e compromissos financeiros, para que eu possa organizar e acompanhar meus pagamentos em um único lugar. 
+
+ Protótipo de Baixa Fidelidade
+
+FUNCIONALIDADE CRÍTICA: CADASTRO DE COMPROMISSOS
+
+FLUXO DE NAVEGAÇÃO BÁSICO
+
+ PROTÓTIPO DE ALTA FIDELIDADE
+
+ Matriz de planejamento de IHC
+
+CADASTRO DE COMPROMISSOS FINANCEIROS
+
+Funcionalidade
+
+Persona Alvo
+
+Tipo de Protótipo
+
+Método de Avaliação
+
+Critério de Pronto (DoR)
+
+US01 – Acessar cadastro de compromisso
+
+Usuário final que deseja organizar seus compromissos financeiros
+
+Baixa Fidelidade (Rabiscoframe) e Alta Fidelidade (Figma)
+
+Teste de Usabilidade com 2 usuários externos
+
+Usuário consegue localizar a opção de adicionar um novo compromisso.
+
+US01 – Preencher dados do compromisso
+
+Usuário final que deseja registrar uma nova obrigação financeira
+
+Baixa Fidelidade (Rabiscoframe) e Alta Fidelidade (Figma)
+
+Teste de Usabilidade com 2 usuários externos
+
+Usuário consegue identificar e preencher corretamente nome, valor, data, categoria e descrição.
+
+US01 – Selecionar categoria do compromisso
+
+Usuário final que deseja organizar seus compromissos por categoria
+
+Baixa Fidelidade (Rabiscoframe) e Alta Fidelidade (Figma)
+
+Teste de Usabilidade com 2 usuários externos
+
+Usuário consegue compreender a finalidade do campo e selecionar uma categoria adequada.
+
+US01 – Salvar compromisso
+
+Usuário final que deseja concluir o cadastro de uma nova conta
+
+Baixa Fidelidade (Rabiscoframe) e Alta Fidelidade (Figma)
+
+Teste de Usabilidade com 2 usuários externos
+
+Usuário consegue salvar o compromisso após preencher os dados necessários.
+
+US01 – Visualizar compromisso cadastrado
+
+Usuário final que deseja confirmar o registro realizado
+
+Baixa Fidelidade (Rabiscoframe) e Alta Fidelidade (Figma)
+
+Teste de Usabilidade com 2 usuários externos
+
+Após o cadastro, o usuário consegue identificar o compromisso e confirmar suas informações.
+
+ PERSONA ÁGIL
+
+Nome: Mariana, 24 anosPerfil: Usuária que possui contas, cartões de crédito, compras parceladas e despesas recorrentes.
+
+Problema: Tem dificuldade para acompanhar seus compromissos financeiros porque as informações estão distribuídas entre diferentes cartões, contas e serviços.
+
+Necessidade: O
+
+rganizar e acompanhar seus gastos, vencimentos e parcelamentos em um único lugar.
+
+Objetivo: Ter uma visão clara dos compromissos atuais e futuros, evitando esquecimentos e facilitando o controle financeiro.
+
+Conexão com a user story: 
+
+US01 — Cadastro de Compromissos
+
+Como Mariana (usuária do organizador financeiro), quero cadastrar meus compromissos financeiros, para organizar contas, vencimentos e valores em um único local.
+
+ MAPEAMENTO – JORNADA DO USUÁRIO
+
+Passo 1 — Acesso
+
+Mariana abre o aplicativo e acessa a tela Início, onde encontra um resumo dos seus compromissos e um atalho para cadastrar um novo compromisso.
+
+Passo 2 — Cadastro
+
+Seleciona “Novo compromisso” e acessa o formulário de cadastro.
+
+Passo 3 — Preenchimento
+
+Informa título, valor, data de vencimento, categoria e status do compromisso.
+
+Passo 4 — Confirmação
+
+Seleciona “Cadastrar compromisso” e recebe uma confirmação de que o registro foi realizado.
+
+Passo 5 — Consulta
+
+O novo compromisso passa a aparecer na lista de compromissos e posteriormente pode ser utilizado na visão consolidada do Dashboard.
+
+ PROTOTIPAÇÃO ALTA FIDELIDADE – TELA PRINCIPAL
+
+ TABELA DE REQUISITOS E CRITÉRIOS DE USABILIDADE
+
+USER STORY / ID
+
+PERSONA E JORNADA
+
+ARTEFATO DE IHC (PROTÓTIPO)
+
+CRITÉRIO DE USABILIDADE (DoD)
+
+US01 — Cadastro de Compromissos
+
+Mariana — Passo 2: Cadastro e Passo 3: Preenchimento
+
+Protótipo de alta fidelidade da tela “Novo Compromisso”
+
+A tarefa deve ser concluída em até 3 etapas principais, sem erros impeditivos e com feedback visual após o cadastro.
+
+US02 — Registro de Compras Parceladas
+
+Mariana — Passo 2: Registro e Passo 3: Preenchimento da compra
+
+Protótipo de alta fidelidade da tela “Nova Compra”
+
+O usuário deve conseguir registrar uma compra e visualizar imediatamente o número e o valor das parcelas geradas.
+
+US03 — Dashboard Consolidado
+
+Mariana — Passo 5: Consulta dos compromissos
+
+Protótipo de alta fidelidade do Dashboard
+
+As informações consolidadas devem ser apresentadas de forma clara, permitindo identificar rapidamente valores, categorias, cartões e compromissos futuros.
+
+DECOMPOSIÇÃO NO PROJETO DE SQUAD
+
+ SELEÇÃO USER STORY 
+
+US02 -- Registrar compra parcelada
+
+Como usuário, eu quero registrar compras realizadas no cartão e informar o número de parcelas, para que o sistema distribua o valor da compra entre os períodos correspondentes.
+
+ REDAÇÃO DA META DA SPRINT
+
+Entregar o registro funcional de compras parceladas, permitindo cadastrar uma compra realizada no cartão e gerar suas respectivas parcelas e compromissos futuros
+
+ Tabela de DECOMPOSIÇÃO TÉCNICA
+
+ID
+
+Camada
+
+Descrição Técnica da Tarefa
+
+Critério de Aceite / DoD
+
+Estimativa
+
+TAR-01
+
+Banco de Dados
+
+Estruturar os dados necessários para armazenar uma compra parcelada, incluindo descrição, valor total, data, cartão, quantidade de parcelas e valor de cada parcela.
+
+Estrutura de dados definida com os campos necessários para representar a compra parcelada.
+
+3 horas
+
+TAR-02
+
+Interface / UI
+
+Criar tela de cadastro de transação com campos para descrição, valor, data, cartão e opção de parcelamento.
+
+Todos os campos necessários estão disponíveis e organizados na interface.
+
+4 horas
+
+TAR-03
+
+Interface / UI
+
+Implementar a seleção da quantidade de parcelas e apresentação do valor de cada parcela.
+
+Usuário consegue selecionar a quantidade de parcelas e visualizar o valor correspondente.
+
+3 horas
+
+TAR-04
+
+Protótipo / Figma
+
+Criar o fluxo de navegação entre cadastro da compra, definição do parcelamento, confirmação e visualização da compra registrada.
+
+Fluxo completo navegável no protótipo, sem erros de navegação.
+
+3 horas
+
+TAR-05
+
+Testes / QA
+
+Realizar teste de usabilidade do fluxo de registro de compra parcelada com usuários externos.
+
+Usuários conseguem concluir o cadastro da compra parcelada sem erros críticos.
+
+2 horas
+
+ TABELA DE DECOMPOSIÇÃO DA SQUAD
+
+FINNK – SUAS CONTAS EM DIA, SUA MENTE EM PAZ. 
+
+Meta da Sprint: Implementar/prototipar o fluxo de registro de compra parcelada
+
+ID
+
+Camada Técnica
+
+Detalhamento da Tarefa de Engenharia
+
+Critério de Pronto (DoD)
+
+Horas
+
+TSK-01
+
+Banco de Dados
+
+Modelar os dados necessários para representar uma compra parcelada, incluindo valor, data, cartão, quantidade e valor das parcelas.
+
+Modelo de dados definido e validado.
+
+3 horas
+
+TSK-02
+
+Backend / API
+
+Definir as regras para registro da compra parcelada e geração das parcelas.
+
+Regras de parcelamento definidas e validadas.
+
+4 horas
+
+TSK-03
+
+Frontend / UI
+
+Criar as telas de cadastro da compra, seleção de cartão, quantidade de parcelas e confirmação.
+
+Fluxo completo disponível e navegável no protótipo.
+
+5 horas
+
+TSK-04
+
+Garantia de Qualidade
+
+Realizar testes do fluxo de registro da compra parcelada com usuários externos.
+
+Usuários conseguem concluir o fluxo sem erros críticos.
+
+3 horas
+
+ESTIMANDO O PROJETO 
+
+Item do Backlog (User Story))
+
+Comparação com a Âncora
+
+Fatores de Risco / Incerteza
+
+Fibonacci (Points)
+
+Status / Ação
+
+US01 - Cadastrar compromisso
+
+História padrão de comparação
+
+Nenhum / Baixo: fluxo de cadastro definido, com preenchimento de dados, seleção de categoria e salvamento.
+
+1 Point
+
+Âncora Definida
+
+US02 — Registrar compra parcelada
+
+5x maior que a âncora, pois além do cadastro envolve a lógica de parcelamento e distribuição do valor entre os períodos.
+
+Médio: envolve número de parcelas, distribuição do valor e geração dos compromissos futuros.
+
+5 Point
+
+Aprovada
+
+US03 — Visualizar compromissos consolidados
+
+Muito maior e mais complexa que a âncora, pois precisa consolidar diferentes compromissos e apresentar os períodos atual e futuros.
+
+Médio/Alto: envolve consolidação, organização e apresentação de diferentes informações financeiras.
+
+8 Points
+
+Aprovada
+
+ 
+
+ 
+
+ Identificação de Épicos  
+
+Durante a estimativa, nenhuma das User Stories recebeu pontuação igual ou superior a 13 Story Points. Dessa forma, não foi identificada nenhuma história que precisasse ser considerada um Épico ou obrigatoriamente fatiada nesta etapa do projeto. 
+
+ 
+
+Registro de Justificativas 
+
+US01 — Cadastrar compromisso — 1 Story Point: Foi definida como História Âncora por apresentar um fluxo simples e já bem definido. Os principais riscos são baixos, pois envolve basicamente o preenchimento, seleção de categoria, salvamento e visualização do compromisso. 
+
+ 
+
+US02 — Registrar compra parcelada — 5 Story Points: Recebeu uma pontuação maior devido à lógica de parcelamento. Os principais fatores de risco e incerteza são o número de parcelas, a distribuição do valor entre os períodos e a geração dos compromissos futuros. 
+
+ 
+
+US03 — Visualizar compromissos consolidados — 8 Story Points: Recebeu a maior pontuação por envolver a consolidação das informações financeiras. Os principais fatores de risco e incerteza estão relacionados à organização e apresentação dos compromissos do período atual e dos próximos períodos. 
