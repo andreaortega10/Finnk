@@ -100,9 +100,7 @@ class InstallmentPurchase(Base):
     description = Column(Text, nullable=True)
     total_amount = Column(Float, nullable=False)
     purchase_date = Column(Date, nullable=False)
-    due_date = Column(Date, nullable=True)
     first_due_date = Column(Date, nullable=False)
-    due_date = Column(Date, nullable=True)
     total_installments = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -129,7 +127,6 @@ class RecurringRule(Base):
     due_day = Column(Integer, nullable=True)
     alert_day = Column(Integer, nullable=True)
     start_date = Column(Date, nullable=False)
-    due_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -234,4 +231,6 @@ class AuditLog(Base):
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
+
+
 
