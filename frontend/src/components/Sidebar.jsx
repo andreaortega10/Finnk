@@ -60,9 +60,7 @@ export function Sidebar({ activeTab, setActiveTab }) {
       <div>
         {/* Brand Logo */}
         <div className="flex items-center space-x-3 px-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#D83A6F] to-[#FB7185] flex items-center justify-center text-white font-black text-xl shadow-md shadow-pink-200">
-            F
-          </div>
+          <img src="/icon.jpg" alt="FINNK Logo" className="w-10 h-10 rounded-xl object-cover shadow-md shadow-pink-200" />
           <div>
             <span className="text-xl font-black tracking-tight text-slate-800">FINNK</span>
             <span className="block text-[10px] uppercase tracking-wider font-semibold text-[#D83A6F]">
@@ -116,3 +114,4 @@ export function Sidebar({ activeTab, setActiveTab }) {
     </aside>
   );
 }
+

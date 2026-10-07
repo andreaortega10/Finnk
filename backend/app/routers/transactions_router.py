@@ -157,6 +157,7 @@ def create_transaction(
         description=tx_data.description.strip() if tx_data.description else None,
         amount=round(tx_data.amount, 2),
         date=tx_data.date,
+        due_date=tx_data.due_date,
         type=tx_data.type.upper(),
         status=assigned_status.upper(),
         payment_method=tx_data.payment_method or "OUTRO",
@@ -222,6 +223,8 @@ def update_transaction(
         tx.description = tx_data.description.strip()
     if tx_data.date is not None:
         tx.date = tx_data.date
+    if tx_data.due_date is not None:
+        tx.due_date = tx_data.due_date
     if tx_data.type is not None:
         tx.type = tx_data.type.upper()
     if tx_data.category_id is not None:
@@ -293,3 +296,5 @@ def delete_transaction(
 
     log_audit(db, current_user.id, "TRANSACTION", tx_id, "DELETE", {"title": tx.title, "amount": tx.amount})
     return {"message": "Transação excluída com sucesso."}
+
+

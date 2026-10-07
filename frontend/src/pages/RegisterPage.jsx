@@ -42,9 +42,7 @@ export function RegisterPage({ onSwitchToLogin }) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-rose-50 via-white to-pink-50">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-7 sm:p-9 border border-pink-100 relative">
         <div className="text-center mb-7">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#D83A6F] to-[#FB7185] flex items-center justify-center text-white font-black text-2xl mx-auto mb-3 shadow-lg shadow-pink-200">
-            F
-          </div>
+          <img src="/icon.jpg" alt="FINNK Logo" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-3 shadow-lg shadow-pink-200" />
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Criar Conta</h1>
           <p className="text-xs font-semibold text-[#D83A6F] uppercase tracking-wider mt-0.5">
             Comece a organizar suas finanças hoje
@@ -133,3 +131,4 @@ export function RegisterPage({ onSwitchToLogin }) {
     </div>
   );
 }
+

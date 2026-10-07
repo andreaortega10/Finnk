@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://finnk.onrender.com/api';
 
 export async function request(endpoint, options = {}) {
   const token = localStorage.getItem('finnk_token');
@@ -181,3 +181,4 @@ export const api = {
     resetData: () => request('/user/reset-data', { method: 'POST' }),
   },
 };
+

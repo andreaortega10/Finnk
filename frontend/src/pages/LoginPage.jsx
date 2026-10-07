@@ -5,8 +5,8 @@ import { api } from '../services/api';
 
 export function LoginPage({ onSwitchToRegister }) {
   const { login } = useAuth();
-  const [email, setEmail] = useState('mariana@finnk.com');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
@@ -25,32 +25,7 @@ export function LoginPage({ onSwitchToRegister }) {
     }
   };
 
-  const handleDemoQuickLogin = async () => {
-    setEmail('mariana@finnk.com');
-    setPassword('123456');
-    setLoading(true);
-    setErrorMsg('');
-
-    try {
-      // Tenta login direto
-      await login('mariana@finnk.com', '123456');
-    } catch (err) {
-      // Se não existir, registra e popula demo
-      try {
-        await api.auth.register({
-          name: 'Mariana Silva',
-          email: 'mariana@finnk.com',
-          password: '123456',
-        });
-        await login('mariana@finnk.com', '123456');
-        await api.auth.seedDemo();
-      } catch (regErr) {
-        setErrorMsg('Erro ao preparar conta de demonstração.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const handleForgotPassword = async () => {
     if (!email) {
@@ -71,9 +46,7 @@ export function LoginPage({ onSwitchToRegister }) {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-7 sm:p-9 border border-pink-100 relative">
         {/* Brand Header */}
         <div className="text-center mb-7">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#D83A6F] to-[#FB7185] flex items-center justify-center text-white font-black text-2xl mx-auto mb-3 shadow-lg shadow-pink-200">
-            F
-          </div>
+          <img src="/icon.jpg" alt="FINNK Logo" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-3 shadow-lg shadow-pink-200" />
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">FINNK</h1>
           <p className="text-xs font-semibold text-[#D83A6F] uppercase tracking-wider mt-0.5">
             Suas contas em dia, sua mente em paz.
@@ -132,18 +105,6 @@ export function LoginPage({ onSwitchToRegister }) {
         </form>
 
         {/* Demo Fast Login */}
-        <div className="mt-5 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={handleDemoQuickLogin}
-            disabled={loading}
-            className="w-full py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs transition-all flex items-center justify-center space-x-2 border border-purple-200/60"
-          >
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>Entrar com Conta de Teste (Mariana Silva)</span>
-          </button>
-        </div>
-
         {/* Switch to Register */}
         <p className="text-center text-xs text-slate-500 mt-6">
           Ainda não tem conta?{' '}
@@ -159,3 +120,7 @@ export function LoginPage({ onSwitchToRegister }) {
     </div>
   );
 }
+
+
+
+

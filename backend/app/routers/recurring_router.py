@@ -73,6 +73,7 @@ def create_recurring_rule(
         type=data.type.upper(),
         frequency=data.frequency.upper(),
         due_day=data.due_day,
+        alert_day=data.alert_day,
         start_date=data.start_date,
         end_date=data.end_date,
         is_active=True
@@ -82,7 +83,7 @@ def create_recurring_rule(
     db.refresh(rule)
 
     # RN09: Gera lançamentos automáticos futuros (3 meses à frente)
-    generate_recurring_transactions_for_rule(db, rule, months_ahead=3)
+    generate_recurring_transactions_for_rule(db, rule)
 
     log_audit(db, current_user.id, "RECURRING_RULE", rule.id, "CREATE", {"title": rule.title, "amount": rule.amount})
     return format_recurring_rule(rule, db)
@@ -103,6 +104,7 @@ def update_recurring(
         new_title=data.title.strip() if data.title else None,
         new_amount=round(data.amount, 2) if data.amount else None,
         new_due_day=data.due_day,
+        alert_day=data.alert_day,
         new_end_date=data.end_date,
         is_active=data.is_active
     )
@@ -132,7 +134,7 @@ def toggle_recurring_rule(
     db.refresh(rule)
 
     if rule.is_active:
-        generate_recurring_transactions_for_rule(db, rule, months_ahead=3)
+        generate_recurring_transactions_for_rule(db, rule)
 
     log_audit(db, current_user.id, "RECURRING_RULE", rule.id, "TOGGLE", {"is_active": rule.is_active})
     return format_recurring_rule(rule, db)
@@ -169,3 +171,5 @@ def delete_recurring_rule(
 
     log_audit(db, current_user.id, "RECURRING_RULE", rule_id, "DELETE")
     return {"message": "Recorrência encerrada e lançamentos futuros pendentes removidos."}
+
+
