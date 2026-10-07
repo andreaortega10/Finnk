@@ -212,16 +212,16 @@ export function CompromissosPage({ initialFilter }) {
                   <div className="w-10 h-10 rounded-2xl bg-pink-50 text-[#D83A6F] flex items-center justify-center shrink-0">
                     {getCategoryIcon(item.category_icon || item.category_name, "w-5 h-5")}
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-800 truncate flex items-center space-x-2">
-                      <span>{item.title}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-slate-800 break-words whitespace-normal line-clamp-2">
+                      {item.title}
                       {item.is_installment && (
-                        <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                        <span className="inline-block ml-2 text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full align-middle">
                           {item.installment_number}/{item.total_installments}
                         </span>
                       )}
                       {item.is_recurring && (
-                        <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        <span className="inline-block ml-2 text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full align-middle">
                           Recorrente
                         </span>
                       )}
@@ -264,7 +264,7 @@ export function CompromissosPage({ initialFilter }) {
             {commitments.length === 0 && (
               <div className="text-center py-12">
                 <CalendarIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-slate-600">Nenhum compromisso encontrado.</p>
+                <p className="text-sm font-semibold text-slate-600">Sem compromissos por enquanto. Aproveite a folga ou cadastre uma despesa!</p>
                 <p className="text-xs text-slate-400 mt-0.5">Cadastre suas contas e parcelas para manter tudo sob controle.</p>
               </div>
             )}

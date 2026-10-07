@@ -11,6 +11,7 @@ DEFAULT_CATEGORIES = [
     {"name": "Contas", "icon": "Receipt", "color": "#EC4899", "type": "DESPESA"},
     {"name": "Saúde", "icon": "HeartPulse", "color": "#10B981", "type": "DESPESA"},
     {"name": "Educação", "icon": "GraduationCap", "color": "#6366F1", "type": "DESPESA"},
+    {"name": "Estudo", "icon": "Book", "color": "#FBBF24", "type": "DESPESA"},
     {"name": "Outros", "icon": "MoreHorizontal", "color": "#9CA3AF", "type": "DESPESA"},
     # Receitas
     {"name": "Salário", "icon": "Briefcase", "color": "#10B981", "type": "RECEITA"},

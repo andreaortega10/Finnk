@@ -123,6 +123,7 @@ class CreditCardUpdate(BaseModel):
     limit_total: Optional[float] = None
     closing_day: Optional[int] = None
     due_day: Optional[int] = None
+    alert_day: Optional[int] = None
 
 class CreditCardOut(BaseModel):
     id: int
@@ -146,6 +147,7 @@ class TransactionCreate(BaseModel):
     description: Optional[str] = None
     amount: float = Field(..., gt=0, description="O valor não pode ser zero (RN02)")
     date: datetime.date
+    due_date: Optional[datetime.date] = None
     type: str = Field("DESPESA", description="RECEITA ou DESPESA")
     category_id: int
     account_id: Optional[int] = None
@@ -158,6 +160,7 @@ class TransactionUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[float] = None
     date: Optional[datetime.date] = None
+    due_date: Optional[datetime.date] = None
     type: Optional[str] = None
     category_id: Optional[int] = None
     account_id: Optional[int] = None
@@ -183,6 +186,7 @@ class TransactionOut(BaseModel):
     description: Optional[str] = None
     amount: float
     date: datetime.date
+    due_date: Optional[datetime.date] = None
     type: str
     status: str
     payment_method: str
@@ -243,7 +247,8 @@ class RecurringRuleCreate(BaseModel):
     amount: float = Field(..., gt=0)
     type: str = "DESPESA"  # DESPESA, RECEITA
     frequency: str = "MENSAL"  # MENSAL, SEMANAL, ANUAL
-    due_day: int = Field(10, ge=1, le=31)
+    due_day: Optional[int] = Field(None, ge=1, le=31)
+    alert_day: Optional[int] = Field(None, ge=1, le=31)
     start_date: datetime.date
     end_date: Optional[datetime.date] = None
     category_id: int
@@ -254,6 +259,7 @@ class RecurringRuleUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[float] = None
     due_day: Optional[int] = None
+    alert_day: Optional[int] = None
     end_date: Optional[datetime.date] = None
     is_active: Optional[bool] = None
 
@@ -264,7 +270,8 @@ class RecurringRuleOut(BaseModel):
     amount: float
     type: str
     frequency: str
-    due_day: int
+    due_day: Optional[int] = None
+    alert_day: Optional[int] = None
     start_date: datetime.date
     end_date: Optional[datetime.date] = None
     is_active: bool

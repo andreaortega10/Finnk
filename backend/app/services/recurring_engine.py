@@ -6,35 +6,29 @@ from .audit_engine import log_audit
 
 def generate_recurring_transactions_for_rule(
     db: Session,
-    rule: RecurringRule,
-    months_ahead: int = 3
+    rule: RecurringRule
 ):
     """
-    RN09:
-    Gera lançamentos automáticos mantendo antecedência configurável (padrão 3 meses).
-    Verifica se já existe lançamento para a data para evitar duplicatas.
+    Gera lanamentos automǭticos at a data limite (end_date) definida pelo usuǭrio.
+    O usuǭrio tem controle total do intervalo.
     """
     if not rule.is_active:
         return
 
     today = datetime.date.today()
-    limit_date = today + relativedelta(months=months_ahead)
-    
-    # Data de início a considerar:
+    if not rule.end_date:
+        # Se por algum motivo histrico nǜo tiver end_date, consideramos inativa ou evitamos loop infinito.
+        return
+
+    limit_date = rule.end_date
     current_date = rule.start_date
-    if rule.frequency == "MENSAL":
-        # Ajusta para o due_day especificado
-        try:
-            current_date = current_date.replace(day=rule.due_day)
-        except ValueError:
-            # Caso o mês não tenha o dia (ex: dia 31 em fevereiro)
-            current_date = current_date.replace(day=28)
+    
+    # Se a frequǦncia  MENSAL e existe um dia de alerta/vencimento
+    # O current_date baseia-se no start_date.
+    # O vencimento/alerta sǜo resolvidos depois.
 
     while current_date <= limit_date:
-        if rule.end_date and current_date > rule.end_date:
-            break
-
-        # Verifica se já existe transação criada para esta regra nesta data exata
+        # Verifica se jǭ existe transaǜo criada para esta regra nesta data de ciclo exata
         existing = db.query(Transaction).filter(
             Transaction.recurring_id == rule.id,
             Transaction.date == current_date,
@@ -42,19 +36,31 @@ def generate_recurring_transactions_for_rule(
         ).first()
 
         if not existing:
-            # RN03: Se data futura -> Pendente; se hoje ou passada -> pode ser pendente/atrasada
+            # Calcula data de vencimento e alerta baseados neste mǦs/ciclo
+            current_due_date = None
+            if rule.due_day:
+                try:
+                    current_due_date = current_date.replace(day=rule.due_day)
+                except ValueError:
+                    current_due_date = current_date.replace(day=28)
+            
+            # Status e atraso s importam se houver data de vencimento
             status = "PENDENTE"
-            if current_date < today:
+            if current_due_date and current_due_date < today:
                 status = "ATRASADA"
+            elif not current_due_date and current_date < today:
+                # Se nǜo tem vencimento, nǜo consideramos atrasado, apenas efetuado ou pendente.
+                status = "PENDENTE" 
 
             new_tx = Transaction(
                 user_id=rule.user_id,
                 account_id=rule.account_id,
                 category_id=rule.category_id,
                 title=rule.title,
-                description=rule.description or f"Lançamento recorrente ({rule.frequency.lower()})",
+                description=rule.description or f"Lanamento recorrente ({rule.frequency.lower()})",
                 amount=rule.amount,
-                date=current_date,
+                date=current_date, # Data de registro/movimentaǜo do ciclo
+                due_date=current_due_date, # Data de vencimento (opcional)
                 type=rule.type,
                 status=status,
                 payment_method="OUTRO",
@@ -63,7 +69,7 @@ def generate_recurring_transactions_for_rule(
             )
             db.add(new_tx)
 
-        # Avança para o próximo período
+        # Avana para o prximo perodo
         if rule.frequency == "MENSAL":
             current_date = current_date + relativedelta(months=1)
         elif rule.frequency == "SEMANAL":
@@ -77,13 +83,19 @@ def generate_recurring_transactions_for_rule(
 
 
 def sync_all_active_recurring_rules(db: Session, user_id: int):
-    """Sincroniza todas as recorrências ativas do usuário garantindo 3 meses à frente."""
+    """Sincroniza todas as recorrǦncias ativas do usuǭrio."""
     rules = db.query(RecurringRule).filter(
         RecurringRule.user_id == user_id,
         RecurringRule.is_active == True
     ).all()
+    today = datetime.date.today()
     for rule in rules:
-        generate_recurring_transactions_for_rule(db, rule)
+        if rule.end_date and rule.end_date < today:
+            # Marca como inativa se jǭ passou
+            rule.is_active = False
+            db.commit()
+        else:
+            generate_recurring_transactions_for_rule(db, rule)
 
 
 def update_recurring_rule_and_future_items(
@@ -93,14 +105,10 @@ def update_recurring_rule_and_future_items(
     new_title: str = None,
     new_amount: float = None,
     new_due_day: int = None,
+    new_alert_day: int = None,
     new_end_date: datetime.date = None,
     is_active: bool = None
 ):
-    """
-    RN10:
-    Alteração de valor ou detalhes em um item recorrente afeta apenas os lançamentos
-    FUTUROS e PENDENTES a partir da data atual. Lançamentos pagos e históricos permanecem intactos.
-    """
     rule = db.query(RecurringRule).filter(
         RecurringRule.id == rule_id,
         RecurringRule.user_id == user_id
@@ -115,6 +123,8 @@ def update_recurring_rule_and_future_items(
         rule.amount = new_amount
     if new_due_day is not None:
         rule.due_day = new_due_day
+    if new_alert_day is not None:
+        rule.alert_day = new_alert_day
     if new_end_date is not None:
         rule.end_date = new_end_date
     if is_active is not None:
@@ -122,7 +132,6 @@ def update_recurring_rule_and_future_items(
 
     today = datetime.date.today()
 
-    # Atualiza apenas lançamentos futuros pendentes
     future_pending = db.query(Transaction).filter(
         Transaction.recurring_id == rule_id,
         Transaction.user_id == user_id,
@@ -137,9 +146,9 @@ def update_recurring_rule_and_future_items(
             tx.amount = new_amount
         if new_due_day and rule.frequency == "MENSAL":
             try:
-                tx.date = tx.date.replace(day=new_due_day)
+                tx.due_date = tx.date.replace(day=new_due_day)
             except ValueError:
-                tx.date = tx.date.replace(day=28)
+                tx.due_date = tx.date.replace(day=28)
 
     db.commit()
     db.refresh(rule)

@@ -15,7 +15,8 @@ import {
   Bell,
   Settings,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,10 +28,10 @@ export function Sidebar({ activeTab, setActiveTab }) {
       title: 'Principal',
       items: [
         { id: 'inicio', label: 'Início', icon: Home },
-        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-        { id: 'compromissos', label: 'Compromissos', icon: Calendar },
+        { id: 'dashboard', label: 'Análise Geral', icon: BarChart3 },
+        { id: 'compromissos', label: 'Despesas', icon: Calendar },
         { id: 'cartoes', label: 'Cartões & Faturas', icon: CreditCard },
-        { id: 'transacoes', label: 'Transações & Entradas', icon: ArrowLeftRight },
+        { id: 'transacoes', label: 'Transações & Receitas', icon: ArrowLeftRight },
       ]
     },
     {
@@ -48,6 +49,7 @@ export function Sidebar({ activeTab, setActiveTab }) {
         { id: 'categorias', label: 'Categorias', icon: Tag },
         { id: 'historico', label: 'Histórico & Auditoria', icon: History },
         { id: 'alertas', label: 'Central de Alertas', icon: Bell },
+        { id: 'ajuda', label: 'Como Utilizar', icon: HelpCircle },
         { id: 'configuracoes', label: 'Configurações', icon: Settings },
       ]
     }

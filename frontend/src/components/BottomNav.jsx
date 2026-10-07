@@ -4,8 +4,8 @@ import { Home, BarChart3, Calendar, CreditCard, ArrowLeftRight, Settings } from 
 export function BottomNav({ activeTab, setActiveTab }) {
   const navItems = [
     { id: 'inicio', label: 'Início', icon: Home },
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'compromissos', label: 'Compromissos', icon: Calendar, highlight: true },
+    { id: 'dashboard', label: 'Análise Geral', icon: BarChart3 },
+    { id: 'compromissos', label: 'Despesas', icon: Calendar, highlight: true },
     { id: 'cartoes', label: 'Cartões', icon: CreditCard },
     { id: 'transacoes', label: 'Transações', icon: ArrowLeftRight },
     { id: 'configuracoes', label: 'Configurações', icon: Settings },

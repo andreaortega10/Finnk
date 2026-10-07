@@ -57,10 +57,17 @@ def list_transactions(
     year: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
     is_compromisso: Optional[bool] = Query(None),
+    start_date: Optional[datetime.date] = Query(None),
+    end_date: Optional[datetime.date] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
+
+    if start_date:
+        query = query.filter(Transaction.date >= start_date)
+    if end_date:
+        query = query.filter(Transaction.date <= end_date)
 
     if type:
         query = query.filter(Transaction.type == type.upper())

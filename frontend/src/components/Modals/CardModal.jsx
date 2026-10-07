@@ -5,7 +5,7 @@ import { api } from '../../services/api';
 export function CardModal({ isOpen, onClose, onSuccess, editCard = null }) {
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('MASTERCARD');
-  const [lastFour, setLastFour] = useState('0000');
+  const [lastFour, setLastFour] = useState('');
   const [limitTotal, setLimitTotal] = useState('');
   const [closingDay, setClosingDay] = useState(5);
   const [dueDay, setDueDay] = useState(12);
@@ -26,7 +26,7 @@ export function CardModal({ isOpen, onClose, onSuccess, editCard = null }) {
       } else {
         setName('');
         setBrand('NUBANK');
-        setLastFour('4582');
+        setLastFour('');
         setLimitTotal('3000');
         setClosingDay(5);
         setDueDay(12);

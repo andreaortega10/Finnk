@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Home, BarChart3, Calendar, CreditCard, ArrowLeftRight,
-  Clock, PieChart, Landmark, Tag, Bell, Settings, LogOut, X
+  Clock, PieChart, Landmark, Tag, Bell, Settings, LogOut, X, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,8 +13,8 @@ export function Drawer({ isOpen, onClose, activeTab, setActiveTab }) {
       title: 'Principal',
       items: [
         { id: 'inicio', label: 'Início', icon: Home },
-        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-        { id: 'compromissos', label: 'Compromissos', icon: Calendar },
+        { id: 'dashboard', label: 'Análise Geral', icon: BarChart3 },
+        { id: 'compromissos', label: 'Despesas', icon: Calendar },
         { id: 'transacoes', label: 'Transações', icon: ArrowLeftRight },
         { id: 'cartoes', label: 'Cartões', icon: CreditCard },
       ]
@@ -31,6 +31,7 @@ export function Drawer({ isOpen, onClose, activeTab, setActiveTab }) {
       items: [
         { id: 'contas', label: 'Contas', icon: Landmark },
         { id: 'categorias', label: 'Categorias', icon: Tag },
+        { id: 'ajuda', label: 'Como Utilizar', icon: HelpCircle },
       ]
     }
   ];

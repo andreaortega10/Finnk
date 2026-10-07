@@ -15,6 +15,7 @@ import { CategoriasPage } from './pages/CategoriasPage';
 import { AlertasPage } from './pages/AlertasPage';
 import { HistoricoPage } from './pages/HistoricoPage';
 import { ConfiguracoesPage } from './pages/ConfiguracoesPage';
+import { HelpPage } from './pages/HelpPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { api } from './services/api';
@@ -90,6 +91,8 @@ function MainLayout() {
         return <HistoricoPage />;
       case 'configuracoes':
         return <ConfiguracoesPage />;
+      case 'ajuda':
+        return <HelpPage />;
       default:
         return <HomePage onNavigate={(tab) => setActiveTab(tab)} />;
     }

@@ -100,7 +100,9 @@ class InstallmentPurchase(Base):
     description = Column(Text, nullable=True)
     total_amount = Column(Float, nullable=False)
     purchase_date = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=True)
     first_due_date = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=True)
     total_installments = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -124,8 +126,10 @@ class RecurringRule(Base):
     amount = Column(Float, nullable=False)
     type = Column(String(20), default="DESPESA")  # DESPESA, RECEITA
     frequency = Column(String(30), default="MENSAL")  # MENSAL, SEMANAL, ANUAL
-    due_day = Column(Integer, default=10)
+    due_day = Column(Integer, nullable=True)
+    alert_day = Column(Integer, nullable=True)
     start_date = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -151,6 +155,7 @@ class Transaction(Base):
     description = Column(Text, nullable=True)
     amount = Column(Float, nullable=False)
     date = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=True)
     type = Column(String(20), nullable=False)  # RECEITA, DESPESA
     status = Column(String(20), default="PENDENTE")  # PAGA, RECEBIDA, PENDENTE, ATRASADA
     payment_method = Column(String(50), default="OUTRO")  # PIX, CARTAO, DINHEIRO, BOLETO, OUTRO
@@ -229,3 +234,4 @@ class AuditLog(Base):
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
+

@@ -23,11 +23,46 @@ export function TransacoesPage({ initialFilter }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(initialFilter || '');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Modals
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
+  useEffect(() => {
+    let sDate = '';
+    let eDate = '';
+    const date = new Date();
+    
+    if (dateFilter === 'HOJE') {
+      sDate = date.toISOString().split('T')[0];
+      eDate = sDate;
+    } else if (dateFilter === 'SEMANA') {
+      const firstDay = new Date(date.setDate(date.getDate() - date.getDay()));
+      const lastDay = new Date(date.setDate(firstDay.getDate() + 6));
+      sDate = firstDay.toISOString().split('T')[0];
+      eDate = lastDay.toISOString().split('T')[0];
+    } else if (dateFilter === 'MES') {
+      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      sDate = firstDay.toISOString().split('T')[0];
+      eDate = lastDay.toISOString().split('T')[0];
+    } else if (dateFilter === 'MES_ANT') {
+      const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+      const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
+      sDate = firstDay.toISOString().split('T')[0];
+      eDate = lastDay.toISOString().split('T')[0];
+    }
+    if (dateFilter === 'PERSONALIZADO') {
+      return;
+    }
+    
+    setStartDate(sDate);
+    setEndDate(eDate);
+  }, [dateFilter]);
 
   const loadData = async () => {
     try {
@@ -38,6 +73,8 @@ export function TransacoesPage({ initialFilter }) {
           status_filter: selectedStatus || undefined,
           category_id: selectedCategory || undefined,
           search: searchTerm || undefined,
+          start_date: startDate || undefined,
+          end_date: endDate || undefined,
         }),
         api.categories.list(),
         api.accounts.list(),
@@ -54,7 +91,7 @@ export function TransacoesPage({ initialFilter }) {
 
   useEffect(() => {
     loadData();
-  }, [tabType, selectedStatus, selectedCategory, searchTerm]);
+  }, [tabType, selectedStatus, selectedCategory, searchTerm, startDate, endDate]);
 
   const handleToggleStatus = async (txId, currentStatus, txType) => {
     let nextStatus = 'PENDENTE';
@@ -87,7 +124,7 @@ export function TransacoesPage({ initialFilter }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Transações & Entradas</h2>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Transações & Receitas</h2>
           <p className="text-xs text-slate-500">Histórico de todas as movimentações financeiras manuais.</p>
         </div>
 
@@ -154,6 +191,37 @@ export function TransacoesPage({ initialFilter }) {
           </div>
 
           <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none bg-white font-medium text-slate-700"
+          >
+            <option value="">Todas as datas</option>
+            <option value="HOJE">Hoje</option>
+            <option value="SEMANA">Esta Semana</option>
+            <option value="MES">Este Mês</option>
+            <option value="MES_ANT">Mês Anterior</option>
+            <option value="PERSONALIZADO">Personalizado</option>
+          </select>
+
+          {dateFilter === 'PERSONALIZADO' && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none bg-white font-medium text-slate-700"
+              />
+              <span className="text-slate-400">até</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none bg-white font-medium text-slate-700"
+              />
+            </div>
+          )}
+
+          <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none bg-white font-medium text-slate-700"
@@ -192,11 +260,11 @@ export function TransacoesPage({ initialFilter }) {
                   }`}>
                     {getCategoryIcon(t.category_icon || t.category_name, "w-5 h-5")}
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-800 truncate flex items-center space-x-2">
-                      <span>{t.title}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-slate-800 break-words whitespace-normal line-clamp-2">
+                      {t.title}
                       {t.is_installment && (
-                        <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                        <span className="inline-block ml-2 text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full align-middle">
                           Parcela {t.installment_number}/{t.total_installments}
                         </span>
                       )}
@@ -244,7 +312,7 @@ export function TransacoesPage({ initialFilter }) {
           {transactions.length === 0 && (
             <div className="text-center py-12">
               <ArrowLeftRight className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-slate-600">Nenhuma transação encontrada.</p>
+              <p className="text-sm font-semibold text-slate-600">Tudo limpo por aqui. Que tal registrar sua primeira movimentação?</p>
               <p className="text-xs text-slate-400 mt-0.5">Registre entradas ou despesas para movimentar seus saldos.</p>
             </div>
           )}
