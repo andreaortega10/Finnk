@@ -18,6 +18,19 @@ from .routers import (
 # Cria todas as tabelas no banco relacional
 Base.metadata.create_all(bind=engine)
 
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text('ALTER TABLE transactions ADD COLUMN due_date DATE;'))
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute(text('ALTER TABLE recurring_rules ADD COLUMN alert_day INTEGER;'))
+        conn.commit()
+    except Exception:
+        pass
+
 app = FastAPI(
     title="FINNK – Organizador Financeiro API",
     description="Backend completo para gestão financeira pessoal, compromissos, cartões, parcelamentos e previsibilidade.",
@@ -54,3 +67,4 @@ def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
+
