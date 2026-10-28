@@ -47,6 +47,7 @@ export const api = {
   auth: {
     register: (body) => request('/auth/register', { method: 'POST', body }),
     login: (body) => request('/auth/login', { method: 'POST', body }),
+    googleLogin: (body) => request('/auth/google', { method: 'POST', body }),
     forgotPassword: (body) => request('/auth/forgot-password', { method: 'POST', body }),
     resetPassword: (body) => request('/auth/reset-password', { method: 'POST', body }),
     getProfile: () => request('/auth/me'),

@@ -13,6 +13,12 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class GoogleAuthRequest(BaseModel):
+    id_token: Optional[str] = None
+    email: EmailStr
+    name: Optional[str] = None
+    photo_url: Optional[str] = None
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 

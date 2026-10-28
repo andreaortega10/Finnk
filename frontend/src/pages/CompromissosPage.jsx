@@ -227,7 +227,7 @@ export function CompromissosPage({ initialFilter }) {
                       )}
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5 flex items-center space-x-2">
-                      <span>Vencimento: {formatDate(item.date)}</span>
+                      <span>{item.due_date ? `Vencimento: ${formatDate(item.due_date)}` : `Data: ${formatDate(item.date)}`}</span>
                       {item.account_name && <span>• {item.account_name}</span>}
                       {item.credit_card_name && <span>• {item.credit_card_name}</span>}
                     </div>

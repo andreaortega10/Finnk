@@ -16,19 +16,19 @@ def generate_recurring_transactions_for_rule(
         return
 
     today = datetime.date.today()
-    if not rule.end_date:
-        # Se por algum motivo histrico nǜo tiver end_date, consideramos inativa ou evitamos loop infinito.
-        return
-
     limit_date = rule.end_date
+    if not limit_date:
+        # Se não informado end_date, projeta até 12 meses a partir do start_date
+        limit_date = rule.start_date + relativedelta(months=12)
+
     current_date = rule.start_date
     
-    # Se a frequǦncia  MENSAL e existe um dia de alerta/vencimento
+    # Se a frequência é MENSAL e existe um dia de alerta/vencimento
     # O current_date baseia-se no start_date.
-    # O vencimento/alerta sǜo resolvidos depois.
+    # O vencimento/alerta são resolvidos depois.
 
     while current_date <= limit_date:
-        # Verifica se jǭ existe transaǜo criada para esta regra nesta data de ciclo exata
+        # Verifica se já existe transação criada para esta regra nesta data de ciclo exata
         existing = db.query(Transaction).filter(
             Transaction.recurring_id == rule.id,
             Transaction.date == current_date,
@@ -36,7 +36,7 @@ def generate_recurring_transactions_for_rule(
         ).first()
 
         if not existing:
-            # Calcula data de vencimento e alerta baseados neste mǦs/ciclo
+            # Calcula data de vencimento e alerta baseados neste mês/ciclo
             current_due_date = None
             if rule.due_day:
                 try:
@@ -44,13 +44,13 @@ def generate_recurring_transactions_for_rule(
                 except ValueError:
                     current_due_date = current_date.replace(day=28)
             
-            # Status e atraso s importam se houver data de vencimento
-            status = "PENDENTE"
-            if current_due_date and current_due_date < today:
-                status = "ATRASADA"
-            elif not current_due_date and current_date < today:
-                # Se nǜo tem vencimento, nǜo consideramos atrasado, apenas efetuado ou pendente.
-                status = "PENDENTE" 
+            # Status e atraso
+            if rule.type == "RECEITA":
+                status = "RECEBIDA" if current_date <= today else "PENDENTE"
+            else:
+                status = "PENDENTE"
+                if current_due_date and current_due_date < today:
+                    status = "ATRASADA" 
 
             new_tx = Transaction(
                 user_id=rule.user_id,

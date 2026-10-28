@@ -1,6 +1,6 @@
 import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_, and_
 from ..models import Account, CreditCard, Transaction, Category, Budget, Alert, User
 from .recurring_engine import sync_all_active_recurring_rules
 from .alerts_engine import generate_financial_alerts
@@ -43,12 +43,15 @@ def calculate_account_balances(db: Session, account: Account) -> tuple[float, fl
         Transaction.date >= today
     ).scalar() or 0.0
 
-    # Despesas futuras pendentes (data >= hoje)
+    # Despesas futuras pendentes (vencimento ou data futura)
     future_expense = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id == account.id,
         Transaction.type == "DESPESA",
-        Transaction.status.in_(["PENDENTE", "ATRASADA"]),
-        Transaction.date >= today
+        Transaction.status == "PENDENTE",
+        or_(
+            Transaction.due_date >= today,
+            and_(Transaction.due_date.is_(None), Transaction.date >= today)
+        )
     ).scalar() or 0.0
 
     projected_balance = round(current_balance + future_income - future_expense, 2)
@@ -82,6 +85,26 @@ def calculate_card_metrics(db: Session, card: CreditCard, month: int = None, yea
     return available_limit, round(invoice_amount, 2)
 
 
+def is_tx_overdue(t: Transaction, today: datetime.date) -> bool:
+    """Classifica se uma despesa está vencida/atrasada."""
+    if t.type != "DESPESA":
+        return False
+    if t.status == "ATRASADA":
+        return True
+    if t.status == "PENDENTE" and t.due_date is not None and t.due_date < today:
+        return True
+    return False
+
+def is_tx_pending(t: Transaction, today: datetime.date) -> bool:
+    """Classifica se uma transação está pendente (e não atrasada)."""
+    if t.status != "PENDENTE":
+        return False
+    return not is_tx_overdue(t, today)
+
+def is_tx_paid(t: Transaction) -> bool:
+    """Classifica se uma transação foi paga ou recebida."""
+    return t.status in ["PAGA", "RECEBIDA"]
+
 def get_home_summary(db: Session, user: User, month: int = None, year: int = None) -> dict:
     """
     Retorna os dados consolidados exatamente no formato esperado pela tela Início
@@ -109,33 +132,39 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
     total_commitments_count = len(month_expenses)
 
     # Pagos
-    paid_items = [t for t in month_expenses if t.status == "PAGA"]
+    paid_items = [t for t in month_expenses if is_tx_paid(t)]
     paid_amount = sum(t.amount for t in paid_items)
     paid_count = len(paid_items)
 
-    # Pendentes (somente as não atrasadas)
-    pending_items = [t for t in month_expenses if t.status == "PENDENTE" and t.date >= today]
-    pending_amount = sum(t.amount for t in pending_items)
-    pending_count = len(pending_items)
-
-    # Atrasados (despesas do mês com status ATRASADA ou pendentes com data < hoje)
-    overdue_items = [t for t in month_expenses if t.status == "ATRASADA" or (t.status == "PENDENTE" and t.date < today)]
+    # Atrasados (somente despesas com vencimento informado e vencimento < hoje, ou status ATRASADA)
+    overdue_items = [t for t in month_expenses if is_tx_overdue(t, today)]
     overdue_amount = sum(t.amount for t in overdue_items)
     overdue_count = len(overdue_items)
+
+    # Pendentes (somente as pendentes que NÃO estão atrasadas)
+    pending_items = [t for t in month_expenses if is_tx_pending(t, today)]
+    pending_amount = sum(t.amount for t in pending_items)
+    pending_count = len(pending_items)
 
     # Próximo vencimento (o item pendente mais próximo a partir de hoje)
     next_due_tx = db.query(Transaction).filter(
         Transaction.user_id == user.id,
         Transaction.type == "DESPESA",
         Transaction.status == "PENDENTE",
-        Transaction.date >= today
-    ).order_by(Transaction.date.asc()).first()
+        or_(
+            Transaction.due_date >= today,
+            and_(Transaction.due_date.is_(None), Transaction.date >= today)
+        )
+    ).order_by(
+        func.coalesce(Transaction.due_date, Transaction.date).asc()
+    ).first()
 
     next_due_dict = None
     if next_due_tx:
+        ref_date = next_due_tx.due_date or next_due_tx.date
         next_due_dict = {
-            "date_formatted": next_due_tx.date.strftime("%d/%m"),
-            "full_date": next_due_tx.date.strftime("%d/%m/%Y"),
+            "date_formatted": ref_date.strftime("%d/%m"),
+            "full_date": ref_date.strftime("%d/%m/%Y"),
             "title": next_due_tx.title,
             "amount": next_due_tx.amount
         }
@@ -189,6 +218,9 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
         cat = db.query(Category).filter(Category.id == t.category_id).first()
         acc = db.query(Account).filter(Account.id == t.account_id).first() if t.account_id else None
         crd = db.query(CreditCard).filter(CreditCard.id == t.credit_card_id).first() if t.credit_card_id else None
+        eff_status = t.status
+        if is_tx_overdue(t, today):
+            eff_status = "ATRASADA"
         return {
             "id": t.id,
             "user_id": t.user_id,
@@ -204,8 +236,9 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
             "description": t.description,
             "amount": t.amount,
             "date": t.date,
+            "due_date": t.due_date,
             "type": t.type,
-            "status": t.status,
+            "status": eff_status,
             "payment_method": t.payment_method,
             "is_installment": t.is_installment,
             "installment_id": t.installment_id,
@@ -282,13 +315,13 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
         extract('year', Transaction.date) == sel_year
     ).all()
 
-    income_received = sum(t.amount for t in month_txs if t.type == "RECEITA" and t.status in ["PAGA", "RECEBIDA"])
-    income_expected = sum(t.amount for t in month_txs if t.type == "RECEITA" and t.status == "PENDENTE")
-    expense_paid = sum(t.amount for t in month_txs if t.type == "DESPESA" and t.status == "PAGA")
-    expense_pending = sum(t.amount for t in month_txs if t.type == "DESPESA" and t.status == "PENDENTE" and t.date >= today)
-    overdue_val = sum(t.amount for t in month_txs if t.type == "DESPESA" and (t.status == "ATRASADA" or (t.status == "PENDENTE" and t.date < today)))
+    income_received = sum(t.amount for t in month_txs if t.type == "RECEITA" and is_tx_paid(t))
+    income_expected = sum(t.amount for t in month_txs if t.type == "RECEITA" and is_tx_pending(t, today))
+    expense_paid = sum(t.amount for t in month_txs if t.type == "DESPESA" and is_tx_paid(t))
+    expense_pending = sum(t.amount for t in month_txs if t.type == "DESPESA" and is_tx_pending(t, today))
+    overdue_val = sum(t.amount for t in month_txs if is_tx_overdue(t, today))
 
-    # 3. Compromissos futuros (a partir do mês seguinte até o fim do ano ou 6 meses)
+    # 3. Compromissos futuros (a partir de amanhã)
     future_commitments = db.query(func.sum(Transaction.amount)).filter(
         Transaction.user_id == user.id,
         Transaction.type == "DESPESA",
@@ -298,7 +331,6 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
 
     # 4. Evolução mensal (últimos 6 meses até o mês selecionado)
     evolution_data = []
-    start_date = today.replace(day=1) - datetime.timedelta(days=150)
     for i in range(6):
         m_date = today.replace(day=1) - datetime.timedelta(days=(5 - i) * 30)
         m_num = m_date.month
@@ -330,7 +362,6 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
         })
 
     # 5. Distribuição de gastos por categoria
-    category_distribution = []
     cat_query = db.query(
         Transaction.category_id,
         func.sum(Transaction.amount).label("total")
@@ -342,6 +373,7 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
     ).group_by(Transaction.category_id).all()
 
     total_exp_all = sum(item.total for item in cat_query) or 1.0
+    category_distribution = []
     for item in cat_query:
         cat = db.query(Category).filter(Category.id == item.category_id).first()
         if cat:
@@ -354,11 +386,15 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
                 "percentage": round((item.total / total_exp_all) * 100, 1)
             })
 
-    # 6. Distribuição de status dos compromissos
+    # 6. Distribuição de status dos compromissos (disjunta e perfeitamente equilibrada)
+    paid_count = len([t for t in month_txs if t.type == "DESPESA" and is_tx_paid(t)])
+    pending_count = len([t for t in month_txs if t.type == "DESPESA" and is_tx_pending(t, today)])
+    overdue_count = len([t for t in month_txs if is_tx_overdue(t, today)])
+
     status_distribution = [
-        {"name": "Pagos", "count": len([t for t in month_txs if t.status == "PAGA"]), "amount": round(expense_paid, 2), "color": "#10B981"},
-        {"name": "Pendentes", "count": len([t for t in month_txs if t.status == "PENDENTE"]), "amount": round(expense_pending, 2), "color": "#F59E0B"},
-        {"name": "Atrasados", "count": len([t for t in month_txs if t.status == "ATRASADA" or (t.status == "PENDENTE" and t.date < today)]), "amount": round(overdue_val, 2), "color": "#EF4444"},
+        {"name": "Pagos", "count": paid_count, "amount": round(expense_paid, 2), "color": "#10B981"},
+        {"name": "Pendentes", "count": pending_count, "amount": round(expense_pending, 2), "color": "#F59E0B"},
+        {"name": "Atrasados", "count": overdue_count, "amount": round(overdue_val, 2), "color": "#EF4444"},
     ]
 
     # 7. Cartões de crédito e uso

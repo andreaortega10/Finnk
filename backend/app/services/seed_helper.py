@@ -15,17 +15,19 @@ DEFAULT_CATEGORIES = [
     {"name": "Outros", "icon": "MoreHorizontal", "color": "#9CA3AF", "type": "DESPESA"},
     # Receitas
     {"name": "Salário", "icon": "Briefcase", "color": "#10B981", "type": "RECEITA"},
-    {"name": "Prestação de Serviços", "icon": "Wrench", "color": "#06B6D4", "type": "RECEITA"},
     {"name": "Vendas", "icon": "ShoppingBag", "color": "#F59E0B", "type": "RECEITA"},
+    {"name": "Prestação de Serviços", "icon": "Wrench", "color": "#06B6D4", "type": "RECEITA"},
     {"name": "Outras Receitas", "icon": "PlusCircle", "color": "#6B7280", "type": "RECEITA"},
+    {"name": "Outros", "icon": "MoreHorizontal", "color": "#9CA3AF", "type": "RECEITA"},
 ]
 
 def seed_default_categories(db: Session, user_id: int):
-    """Cria categorias padrões do sistema para o novo usuário."""
+    """Cria categorias padrões do sistema para o novo usuário de forma persistente e idempotente."""
+    has_changes = False
     for cat in DEFAULT_CATEGORIES:
         exists = db.query(Category).filter(
             Category.user_id == user_id,
-            Category.name == cat["name"],
+            Category.name.ilike(cat["name"]),
             Category.type == cat["type"]
         ).first()
         if not exists:
@@ -39,7 +41,9 @@ def seed_default_categories(db: Session, user_id: int):
                 is_hidden=False
             )
             db.add(new_cat)
-    db.commit()
+            has_changes = True
+    if has_changes:
+        db.commit()
 
 
 def seed_demo_data(db: Session, user: User):

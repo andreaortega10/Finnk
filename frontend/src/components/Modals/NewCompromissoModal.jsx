@@ -103,6 +103,7 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
           description: description.trim() || undefined,
           amount: numAmount,
           date: dueDate,
+          due_date: dueDate,
           type: 'DESPESA',
           category_id: parseInt(categoryId, 10),
           account_id: selectedAccount ? parseInt(selectedAccount, 10) : undefined,

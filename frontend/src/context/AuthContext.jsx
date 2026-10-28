@@ -50,6 +50,20 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const loginGoogle = async (googleUser) => {
+    const res = await api.auth.googleLogin({
+      id_token: googleUser.idToken,
+      email: googleUser.email,
+      name: googleUser.name,
+      photo_url: googleUser.photoUrl
+    });
+    setToken(res.access_token);
+    setUser(res.user);
+    localStorage.setItem('finnk_token', res.access_token);
+    localStorage.setItem('finnk_user', JSON.stringify(res.user));
+    return res;
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -65,7 +79,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, loginGoogle, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

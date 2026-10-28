@@ -5,11 +5,13 @@ from ..database import get_db
 from ..models import User, Transaction, Account, CreditCard, Category, Budget, Alert, AuditLog, RecurringRule, InstallmentPurchase
 from ..schemas import (
     UserCreate, UserLogin, UserOut, Token, UserProfileUpdate,
-    UserPasswordChange, PasswordResetRequest, PasswordResetConfirm
+    UserPasswordChange, PasswordResetRequest, PasswordResetConfirm,
+    GoogleAuthRequest
 )
 from ..auth import verify_password, get_password_hash, create_access_token, get_current_user
 from ..services.seed_helper import seed_default_categories, seed_demo_data
 from ..services.audit_engine import log_audit
+import secrets
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticação e Perfil"])
 
@@ -58,6 +60,44 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos."
         )
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer", "user": user}
+
+
+@router.post("/google", response_model=Token)
+def login_with_google(data: GoogleAuthRequest, db: Session = Depends(get_db)):
+    email = data.email.lower().strip()
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail inválido da conta Google.")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Cria novo usuário via Google preservando a segurança
+        user = User(
+            name=(data.name or email.split("@")[0]).strip(),
+            email=email,
+            hashed_password=get_password_hash(secrets.token_hex(16)),
+            default_currency="BRL"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        # Categorias e conta bancária padrão
+        seed_default_categories(db, user.id)
+        default_acc = Account(
+            user_id=user.id,
+            name="Conta Corrente",
+            type="CORRENTE",
+            color="#3B82F6",
+            initial_balance=0.0
+        )
+        db.add(default_acc)
+        db.commit()
+        log_audit(db, user.id, "USER", user.id, "REGISTER_GOOGLE")
+    else:
+        log_audit(db, user.id, "USER", user.id, "LOGIN_GOOGLE")
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer", "user": user}

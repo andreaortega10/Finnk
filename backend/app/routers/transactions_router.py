@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import extract, or_
+from sqlalchemy import extract, or_, and_
 from typing import List, Optional
 import datetime
 from ..database import get_db
@@ -9,6 +9,7 @@ from ..schemas import TransactionCreate, TransactionUpdate, TransactionStatusUpd
 from ..auth import get_current_user
 from ..services.audit_engine import log_audit
 from ..services.alerts_engine import generate_financial_alerts
+from ..services.recurring_engine import sync_all_active_recurring_rules
 
 router = APIRouter(prefix="/api/transactions", tags=["Transações e Compromissos"])
 
@@ -16,6 +17,11 @@ def format_transaction_out(t: Transaction, db: Session) -> TransactionOut:
     cat = db.query(Category).filter(Category.id == t.category_id).first()
     acc = db.query(Account).filter(Account.id == t.account_id).first() if t.account_id else None
     crd = db.query(CreditCard).filter(CreditCard.id == t.credit_card_id).first() if t.credit_card_id else None
+    today = datetime.date.today()
+    eff_status = t.status
+    if t.type == "DESPESA" and (t.status == "ATRASADA" or (t.status == "PENDENTE" and t.due_date is not None and t.due_date < today)):
+        eff_status = "ATRASADA"
+
     return TransactionOut(
         id=t.id,
         user_id=t.user_id,
@@ -31,8 +37,9 @@ def format_transaction_out(t: Transaction, db: Session) -> TransactionOut:
         description=t.description,
         amount=t.amount,
         date=t.date,
+        due_date=t.due_date,
         type=t.type,
-        status=t.status,
+        status=eff_status,
         payment_method=t.payment_method,
         is_installment=t.is_installment,
         installment_id=t.installment_id,
@@ -62,6 +69,9 @@ def list_transactions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Sincroniza regras recorrentes ativas para garantir integridade
+    sync_all_active_recurring_rules(db, current_user.id)
+
     query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
 
     if start_date:
@@ -71,21 +81,32 @@ def list_transactions(
 
     if type:
         query = query.filter(Transaction.type == type.upper())
+
     if status_filter:
-        if status_filter.upper() == "ATRASADA":
-            today = datetime.date.today()
-            from sqlalchemy import and_
+        sf = status_filter.upper()
+        today = datetime.date.today()
+        if sf in ["PAGA", "RECEBIDA"]:
+            query = query.filter(Transaction.status.in_(["PAGA", "RECEBIDA"]))
+        elif sf == "ATRASADA":
             query = query.filter(
+                Transaction.type == "DESPESA",
                 or_(
                     Transaction.status == "ATRASADA",
-                    and_(Transaction.status == "PENDENTE", Transaction.date < today)
+                    and_(Transaction.status == "PENDENTE", Transaction.due_date.isnot(None), Transaction.due_date < today)
+                )
+            )
+        elif sf == "PENDENTE":
+            query = query.filter(
+                Transaction.status == "PENDENTE",
+                or_(
+                    Transaction.type == "RECEITA",
+                    Transaction.due_date.is_(None),
+                    Transaction.due_date >= today
                 )
             )
         else:
-            query = query.filter(Transaction.status == status_filter.upper())
-            if status_filter.upper() == "PENDENTE":
-                today = datetime.date.today()
-                query = query.filter(Transaction.date >= today)
+            query = query.filter(Transaction.status == sf)
+
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
     if account_id:
@@ -103,7 +124,7 @@ def list_transactions(
         # Compromissos são despesas a pagar ou a vencer
         query = query.filter(Transaction.type == "DESPESA")
 
-    txs = query.order_by(Transaction.date.desc(), Transaction.id.desc()).all()
+    txs = query.order_by(Transaction.date.desc(), Transaction.created_at.desc(), Transaction.id.desc()).all()
     return [format_transaction_out(t, db) for t in txs]
 
 

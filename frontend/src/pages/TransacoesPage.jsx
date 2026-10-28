@@ -15,6 +15,13 @@ import { formatCurrency, formatDate, getCategoryIcon } from '../utils/helpers';
 import { NewEntryModal } from '../components/Modals/NewEntryModal';
 import { NewCompromissoModal } from '../components/Modals/NewCompromissoModal';
 
+const toLocalDateStr = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function TransacoesPage({ initialFilter }) {
   const [tabType, setTabType] = useState(''); // '' (Todas) | 'RECEITA' | 'DESPESA'
   const [transactions, setTransactions] = useState([]);
@@ -35,26 +42,27 @@ export function TransacoesPage({ initialFilter }) {
   useEffect(() => {
     let sDate = '';
     let eDate = '';
-    const date = new Date();
+    const now = new Date();
     
     if (dateFilter === 'HOJE') {
-      sDate = date.toISOString().split('T')[0];
+      sDate = toLocalDateStr(now);
       eDate = sDate;
     } else if (dateFilter === 'SEMANA') {
-      const firstDay = new Date(date.setDate(date.getDate() - date.getDay()));
-      const lastDay = new Date(date.setDate(firstDay.getDate() + 6));
-      sDate = firstDay.toISOString().split('T')[0];
-      eDate = lastDay.toISOString().split('T')[0];
+      const dayOfWeek = now.getDay();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 6);
+      sDate = toLocalDateStr(firstDay);
+      eDate = toLocalDateStr(lastDay);
     } else if (dateFilter === 'MES') {
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      sDate = firstDay.toISOString().split('T')[0];
-      eDate = lastDay.toISOString().split('T')[0];
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      sDate = toLocalDateStr(firstDay);
+      eDate = toLocalDateStr(lastDay);
     } else if (dateFilter === 'MES_ANT') {
-      const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-      const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
-      sDate = firstDay.toISOString().split('T')[0];
-      eDate = lastDay.toISOString().split('T')[0];
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+      sDate = toLocalDateStr(firstDay);
+      eDate = toLocalDateStr(lastDay);
     }
     if (dateFilter === 'PERSONALIZADO') {
       return;
@@ -79,7 +87,16 @@ export function TransacoesPage({ initialFilter }) {
         api.categories.list(),
         api.accounts.list(),
       ]);
-      setTransactions(txs);
+
+      // Ordenação estritamente cronológica decrescente (mais recente primeiro)
+      const sorted = (txs || []).slice().sort((a, b) => {
+        if (a.date !== b.date) {
+          return new Date(b.date) - new Date(a.date);
+        }
+        return (b.id || 0) - (a.id || 0);
+      });
+
+      setTransactions(sorted);
       setCategories(cats);
       setAccounts(accs);
     } catch (err) {
@@ -152,7 +169,10 @@ export function TransacoesPage({ initialFilter }) {
         {/* Type Tabs */}
         <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
           <button
-            onClick={() => setTabType('')}
+            onClick={() => {
+              setTabType('');
+              setSelectedStatus('');
+            }}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               tabType === '' ? 'bg-[#D83A6F] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}

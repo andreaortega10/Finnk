@@ -104,14 +104,14 @@ function MainLayout() {
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={(tab) => handleNavigate(tab, null)} 
       />
 
       <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header
           onOpenDrawer={() => setIsDrawerOpen(true)}
-          onOpenAlerts={() => setActiveTab('alertas')}
-          onOpenSettings={() => setActiveTab('configuracoes')}
+          onOpenAlerts={() => handleNavigate('alertas', null)}
+          onOpenSettings={() => handleNavigate('configuracoes', null)}
           unreadAlertsCount={unreadAlertsCount}
         />
 
@@ -120,7 +120,7 @@ function MainLayout() {
         </main>
       </div>
 
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <BottomNav activeTab={activeTab} setActiveTab={(tab) => handleNavigate(tab, null)} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ from ..models import Category, User, Transaction
 from ..schemas import CategoryCreate, CategoryUpdate, CategoryOut
 from ..auth import get_current_user
 from ..services.audit_engine import log_audit
+from ..services.seed_helper import seed_default_categories
 
 router = APIRouter(prefix="/api/categories", tags=["Categorias"])
 
@@ -16,6 +17,9 @@ def list_categories(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Garante que as categorias mínimas fixas estão criadas para o usuário
+    seed_default_categories(db, current_user.id)
+
     query = db.query(Category).filter(
         (Category.user_id == current_user.id) | (Category.user_id.is_(None)),
         Category.parent_id.is_(None)
