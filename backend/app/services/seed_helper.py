@@ -18,9 +18,66 @@ DEFAULT_CATEGORIES = [
     {"name": "Salário", "icon": "Briefcase", "color": "#10B981", "type": "RECEITA"},
     {"name": "Vendas", "icon": "ShoppingBag", "color": "#F59E0B", "type": "RECEITA"},
     {"name": "Prestação de Serviços", "icon": "Wrench", "color": "#06B6D4", "type": "RECEITA"},
-    {"name": "Outras Receitas", "icon": "PlusCircle", "color": "#6B7280", "type": "RECEITA"},
-    {"name": "Outros", "icon": "MoreHorizontal", "color": "#9CA3AF", "type": "RECEITA"},
+    {"name": "Outras receitas", "icon": "PlusCircle", "color": "#6B7280", "type": "RECEITA"},
 ]
+
+def unify_income_categories(db: Session, user_id: int):
+    """
+    Unifica categorias de receita 'Outro' e 'Outros' em 'Outras receitas'.
+    Migra todas as transações, recorrências e orçamentos vinculados antes de remover a categoria duplicada.
+    Preserva intacta a categoria 'Outros' do tipo DESPESA.
+    """
+    # 1. Garante ou obtém a categoria alvo 'Outras receitas'
+    target_cat = db.query(Category).filter(
+        Category.user_id == user_id,
+        Category.type == "RECEITA",
+        Category.name.ilike("Outras receitas")
+    ).first()
+
+    if not target_cat:
+        target_cat = Category(
+            user_id=user_id,
+            name="Outras receitas",
+            icon="PlusCircle",
+            color="#6B7280",
+            type="RECEITA",
+            is_system_default=True,
+            is_hidden=False
+        )
+        db.add(target_cat)
+        db.flush()
+
+    # 2. Localiza categorias de receita duplicadas com nome 'Outro' ou 'Outros'
+    old_income_cats = db.query(Category).filter(
+        Category.user_id == user_id,
+        Category.type == "RECEITA",
+        Category.id != target_cat.id,
+        Category.name.in_(["Outro", "Outros", "outro", "outros", "Outras Receitas"])
+    ).all()
+
+    for old_cat in old_income_cats:
+        # Migra transações
+        db.query(Transaction).filter(
+            Transaction.category_id == old_cat.id,
+            Transaction.user_id == user_id
+        ).update({"category_id": target_cat.id}, synchronize_session=False)
+
+        # Migra regras de recorrência
+        db.query(RecurringRule).filter(
+            RecurringRule.category_id == old_cat.id,
+            RecurringRule.user_id == user_id
+        ).update({"category_id": target_cat.id}, synchronize_session=False)
+
+        # Migra orçamentos
+        db.query(Budget).filter(
+            Budget.category_id == old_cat.id,
+            Budget.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # Remove a categoria de receita duplicada
+        db.delete(old_cat)
+
+    db.commit()
 
 def seed_default_categories(db: Session, user_id: int):
     """Cria categorias padrões do sistema para o novo usuário de forma persistente e idempotente."""
@@ -45,6 +102,9 @@ def seed_default_categories(db: Session, user_id: int):
             has_changes = True
     if has_changes:
         db.commit()
+
+    # Executa a unificação para garantir integridade caso existam duplicatas antigas
+    unify_income_categories(db, user_id)
 
 
 def seed_demo_data(db: Session, user: User):

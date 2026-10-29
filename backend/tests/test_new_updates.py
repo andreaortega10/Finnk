@@ -237,3 +237,301 @@ def test_controlled_scenarios_projected_balance(db, test_user):
     res2_deleted = get_dashboard_analytics(db, test_user, m2, y2)
     assert res2_deleted["projected_balance"] == 4200.0
 
+
+def test_unify_income_categories(db, test_user):
+    """
+    Testa que 'Outro' e 'Outros' de RECEITA são unificados em 'Outras receitas',
+    as transações são re-apontadas e 'Outros' de DESPESA permanece intacto.
+    """
+    # Cria categoria antiga 'Outros' de RECEITA
+    old_cat_rec = Category(
+        user_id=test_user.id,
+        name="Outros",
+        icon="MoreHorizontal",
+        color="#9CA3AF",
+        type="RECEITA",
+        is_system_default=False
+    )
+    db.add(old_cat_rec)
+    db.commit()
+
+    acc = Account(user_id=test_user.id, name="Conta", initial_balance=100.0)
+    db.add(acc)
+    db.commit()
+
+    # Transação vinculada à categoria antiga
+    tx = Transaction(
+        user_id=test_user.id,
+        account_id=acc.id,
+        category_id=old_cat_rec.id,
+        title="Receita Freelance Extra",
+        amount=250.0,
+        date=datetime.date.today(),
+        type="RECEITA",
+        status="RECEBIDA"
+    )
+    db.add(tx)
+    db.commit()
+
+    # Executa unificação
+    from backend.app.services.seed_helper import unify_income_categories
+    unify_income_categories(db, test_user.id)
+
+    # Verifica que a transação foi re-apontada para 'Outras receitas'
+    db.refresh(tx)
+    target_cat = db.query(Category).filter(Category.id == tx.category_id).first()
+    assert target_cat.name.lower() == "outras receitas"
+    assert target_cat.type == "RECEITA"
+
+    # Verifica que a categoria antiga 'Outros' de RECEITA não existe mais
+    deleted_old = db.query(Category).filter(
+        Category.user_id == test_user.id,
+        Category.name == "Outros",
+        Category.type == "RECEITA"
+    ).first()
+    assert deleted_old is None
+
+    # Verifica que 'Outros' de DESPESA continua intacta
+    expense_outros = db.query(Category).filter(
+        Category.user_id == test_user.id,
+        Category.name == "Outros",
+        Category.type == "DESPESA"
+    ).first()
+    assert expense_outros is not None
+
+
+def test_account_balance_movement_audit(db, test_user):
+    """
+    Auditoria estrita de movimentação de saldos das contas (Correção 7):
+    - Saldo inicial: R$ 1.000,00
+    - Despesa paga: R$ 150,00
+    - Receita recebida: R$ 200,00
+    - Saldo final esperado: R$ 1.050,00
+    - Transações pendentes ou futuras NÃO alteram o saldo real atual.
+    """
+    acc = Account(user_id=test_user.id, name="Conta Corrente Teste", initial_balance=1000.0)
+    cat_rec = db.query(Category).filter(Category.user_id == test_user.id, Category.type == "RECEITA").first()
+    cat_exp = db.query(Category).filter(Category.user_id == test_user.id, Category.type == "DESPESA").first()
+    db.add(acc)
+    db.commit()
+
+    today = datetime.date.today()
+
+    # 1. Despesa paga de R$ 150,00
+    tx_exp_paga = Transaction(
+        user_id=test_user.id,
+        account_id=acc.id,
+        category_id=cat_exp.id,
+        title="Almoço Restaurante",
+        amount=150.0,
+        date=today,
+        due_date=today,
+        type="DESPESA",
+        status="PAGA"
+    )
+
+    # 2. Receita recebida de R$ 200,00
+    tx_rec_paga = Transaction(
+        user_id=test_user.id,
+        account_id=acc.id,
+        category_id=cat_rec.id,
+        title="Reembolso de Despesas",
+        amount=200.0,
+        date=today,
+        type="RECEITA",
+        status="RECEBIDA"
+    )
+
+    # 3. Transação pendente futura de R$ 500,00 (NÃO deve afetar saldo real atual)
+    future_date = today + datetime.timedelta(days=15)
+    tx_futura = Transaction(
+        user_id=test_user.id,
+        account_id=acc.id,
+        category_id=cat_exp.id,
+        title="Boleto Futuro",
+        amount=500.0,
+        date=future_date,
+        due_date=future_date,
+        type="DESPESA",
+        status="PENDENTE"
+    )
+
+    db.add_all([tx_exp_paga, tx_rec_paga, tx_futura])
+    db.commit()
+
+    curr_bal, proj_bal = calculate_account_balances(db, acc)
+    # 1000 - 150 + 200 = 1050.00
+    assert curr_bal == 1050.0
+    # Projetado inclui a despesa futura de 500: 1050 - 500 = 550.00
+    assert proj_bal == 550.0
+
+    # 4. Alterna status da despesa de R$ 150,00 para PENDENTE (saldo real volta para 1200)
+    tx_exp_paga.status = "PENDENTE"
+    db.commit()
+    curr_bal, _ = calculate_account_balances(db, acc)
+    assert curr_bal == 1200.0
+
+    # 5. Edita o valor da receita de 200 para 300
+    tx_rec_paga.amount = 300.0
+    db.commit()
+    curr_bal, _ = calculate_account_balances(db, acc)
+    assert curr_bal == 1300.0
+
+    # 6. Exclui a receita
+    db.delete(tx_rec_paga)
+    db.commit()
+    curr_bal, _ = calculate_account_balances(db, acc)
+    assert curr_bal == 1000.0
+
+
+def test_credit_limit_validation(db, test_user):
+    """
+    Testa bloqueio de compras e parcelamentos que ultrapassam o limite disponível do cartão (Correção 8).
+    """
+    from fastapi import HTTPException
+    from backend.app.services.installments_engine import create_installment_purchase
+    from backend.app.services.financial_engine import calculate_card_metrics
+
+    card = CreditCard(
+        user_id=test_user.id,
+        name="Cartão Gold",
+        brand="VISA",
+        limit_total=1000.0,
+        closing_day=5,
+        due_day=12
+    )
+    cat = db.query(Category).filter(Category.user_id == test_user.id, Category.type == "DESPESA").first()
+    db.add(card)
+    db.commit()
+
+    today = datetime.date.today()
+
+    # Tentativa 1: Compra parcelada de R$ 1.200,00 em cartão com limite de R$ 1.000,00
+    with pytest.raises(HTTPException) as exc_info:
+        create_installment_purchase(
+            db=db,
+            user_id=test_user.id,
+            title="Notebook",
+            total_amount=1200.0,
+            purchase_date=today,
+            first_due_date=today,
+            total_installments=6,
+            credit_card_id=card.id,
+            category_id=cat.id
+        )
+    assert exc_info.value.status_code == 400
+    assert "Limite insuficiente no cartão" in exc_info.value.detail
+
+    # Compra parcelada válida de R$ 600,00 (dentro do limite)
+    inst = create_installment_purchase(
+        db=db,
+        user_id=test_user.id,
+        title="Smartphone",
+        total_amount=600.0,
+        purchase_date=today,
+        first_due_date=today,
+        total_installments=3,
+        credit_card_id=card.id,
+        category_id=cat.id
+    )
+    assert inst is not None
+
+    # Limite disponível agora deve ser 1000 - 600 = 400.0
+    avail, _ = calculate_card_metrics(db, card)
+    assert avail == 400.0
+
+    # Tentativa 2: Nova compra parcelada de R$ 500,00 (limite disponível é 400.0) -> Deve ser bloqueada!
+    with pytest.raises(HTTPException) as exc_info2:
+        create_installment_purchase(
+            db=db,
+            user_id=test_user.id,
+            title="Fone Bluetooth",
+            total_amount=500.0,
+            purchase_date=today,
+            first_due_date=today,
+            total_installments=2,
+            credit_card_id=card.id,
+            category_id=cat.id
+        )
+    assert exc_info2.value.status_code == 400
+    assert "Limite insuficiente no cartão" in exc_info2.value.detail
+
+
+def test_installment_lazer_due_date_and_category_search(db, test_user):
+    """
+    Testa que compras parceladas na categoria Lazer possuem due_date preenchido
+    e aparecem na busca por categoria e na Análise Geral (Correção 9).
+    """
+    from backend.app.services.installments_engine import create_installment_purchase
+
+    card = CreditCard(user_id=test_user.id, name="Cartão Platinum", brand="MASTERCARD", limit_total=5000.0, closing_day=1, due_day=10)
+    cat_lazer = db.query(Category).filter(Category.user_id == test_user.id, Category.name == "Lazer").first()
+    db.add(card)
+    db.commit()
+
+    today = datetime.date.today()
+    inst = create_installment_purchase(
+        db=db,
+        user_id=test_user.id,
+        title="Viagem Praia",
+        total_amount=1500.0,
+        purchase_date=today,
+        first_due_date=today,
+        total_installments=3,
+        credit_card_id=card.id,
+        category_id=cat_lazer.id
+    )
+
+    # Verifica parcelas geradas
+    txs = db.query(Transaction).filter(Transaction.installment_id == inst.id).all()
+    assert len(txs) == 3
+    for t in txs:
+        # Cada parcela DEVE ter due_date definido
+        assert t.due_date is not None
+        assert t.category_id == cat_lazer.id
+
+    # Verifica agregação na Análise Geral
+    analytics = get_dashboard_analytics(db, test_user, today.month, today.year)
+    cat_dist = analytics["category_distribution"]
+    lazer_dist = next((c for c in cat_dist if c["category_id"] == cat_lazer.id), None)
+    assert lazer_dist is not None
+    assert lazer_dist["amount"] == 500.0  # Primeira parcela de 500 no mês atual
+
+
+def test_reset_data_permanence(db, test_user):
+    """
+    Testa que reset_data apaga permanentemente todos os lançamentos e recria
+    corretamente a conta padrão e categorias fixas (Correção 1).
+    """
+    from backend.app.routers.user_router import reset_data
+
+    # Cria dados de teste
+    acc = Account(user_id=test_user.id, name="Minha Conta", initial_balance=500.0)
+    card = CreditCard(user_id=test_user.id, name="Meu Cartao", limit_total=1000.0, closing_day=5, due_day=10)
+    cat = db.query(Category).filter(Category.user_id == test_user.id, Category.type == "DESPESA").first()
+    db.add_all([acc, card])
+    db.commit()
+
+    tx = Transaction(user_id=test_user.id, account_id=acc.id, category_id=cat.id, title="Despesa Teste", amount=50.0, date=datetime.date.today(), type="DESPESA", status="PAGA")
+    db.add(tx)
+    db.commit()
+
+    # Executa o reset de dados
+    res = reset_data(current_user=test_user, db=db)
+    assert "com sucesso" in res["message"]
+
+    # Verifica que a transação foi excluída
+    remaining_tx = db.query(Transaction).filter(Transaction.user_id == test_user.id).all()
+    assert len(remaining_tx) == 0
+
+    # Verifica que existe a Conta Corrente padrão com saldo 0
+    accounts = db.query(Account).filter(Account.user_id == test_user.id).all()
+    assert len(accounts) == 1
+    assert accounts[0].name == "Conta Corrente"
+    assert accounts[0].initial_balance == 0.0
+
+    # Categorias mínimas foram semeadas
+    cats = db.query(Category).filter(Category.user_id == test_user.id).all()
+    assert len(cats) >= 10
+
+

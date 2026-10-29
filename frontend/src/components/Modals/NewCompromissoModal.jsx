@@ -18,7 +18,6 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [hasDueDate, setHasDueDate] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [status, setStatus] = useState('PENDENTE');
@@ -54,8 +53,7 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
       
       const today = new Date().toISOString().split('T')[0];
       setDate(today);
-      setDueDate(today);
-      setHasDueDate(false);
+      setDueDate('');
       setIsRecurring(defaultIsRecurring);
       setErrorMsg('');
       setShowSuccessBanner(false);
@@ -88,7 +86,7 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
 
     setLoading(true);
     try {
-      const finalDueDate = (hasDueDate && dueDate) ? dueDate : undefined;
+      const finalDueDate = dueDate ? dueDate : undefined;
 
       if (isRecurring) {
         // Cadastra como regra de recorrência (RN09)
@@ -240,7 +238,7 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
             </div>
           </div>
 
-          {/* Vencimento Opcional */}
+          {/* Data de Vencimento (Opcional) */}
           <div className="flex items-start space-x-3">
             <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 shrink-0 mt-1">
               <Clock className="w-4 h-4" />
@@ -248,34 +246,14 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-slate-700">Data de Vencimento</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !hasDueDate;
-                    setHasDueDate(next);
-                    if (next && !dueDate) setDueDate(date);
-                  }}
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition-all ${
-                    hasDueDate
-                      ? 'bg-pink-100 text-[#D83A6F]'
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  {hasDueDate ? '✓ Ativo' : '+ Adicionar'}
-                </button>
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">Opcional</span>
               </div>
-              {hasDueDate ? (
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-[#D83A6F] focus:ring-2 focus:ring-pink-100 text-sm outline-none transition-all text-slate-800"
-                />
-              ) : (
-                <p className="text-[11px] text-slate-400">
-                  Opcional. Ideal para pagamentos imediatos (Pix, débito ou dinheiro).
-                </p>
-              )}
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-[#D83A6F] focus:ring-2 focus:ring-pink-100 text-sm outline-none transition-all text-slate-800"
+              />
             </div>
           </div>
 

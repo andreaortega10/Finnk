@@ -13,7 +13,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { api } from '../services/api';
-import { CategoryDonutChart } from '../components/Charts/CategoryDonutChart';
+import { CategoryDonutChart, getDistinctCategoryColor } from '../components/Charts/CategoryDonutChart';
 import { formatCurrency, formatDate, getCategoryIcon } from '../utils/helpers';
 import { NewCompromissoModal } from '../components/Modals/NewCompromissoModal';
 import { NewEntryModal } from '../components/Modals/NewEntryModal';
@@ -246,12 +246,12 @@ export function HomePage({ onNavigate }) {
 
             {/* Breakdown List */}
             <div className="w-full space-y-2.5">
-              {summary?.category_expenses?.slice(0, 5).map((cat) => (
-                <div key={cat.category_id} className="flex items-center justify-between text-xs">
+              {summary?.category_expenses?.slice(0, 5).map((cat, idx) => (
+                <div key={cat.category_id || idx} className="flex items-center justify-between text-xs">
                   <div className="flex items-center space-x-2 min-w-0">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: cat.color }}
+                      style={{ backgroundColor: getDistinctCategoryColor(cat, idx, summary?.category_expenses) }}
                     />
                     <span className="font-semibold text-slate-700 truncate">{cat.name}</span>
                   </div>

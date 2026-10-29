@@ -207,57 +207,83 @@ export function CompromissosPage({ initialFilter }) {
         <div className="pastel-card rounded-3xl p-5 sm:p-6">
           <div className="divide-y divide-slate-100">
             {commitments.map((item) => (
-              <div key={item.id} className="py-3.5 flex items-center justify-between gap-3 group hover:bg-slate-50/60 px-3 rounded-2xl transition-colors">
-                <div className="flex items-center space-x-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-pink-50 text-[#D83A6F] flex items-center justify-center shrink-0">
-                    {getCategoryIcon(item.category_icon || item.category_name, "w-5 h-5")}
+              <div key={item.id} className="py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 group hover:bg-slate-50/70 px-2 sm:px-3 rounded-2xl transition-colors">
+                {/* Linha 1 Mobile: Ícone + Título + Valor */}
+                <div className="flex items-center justify-between sm:justify-start gap-2.5 min-w-0 flex-1">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-2xl bg-pink-50 text-[#D83A6F] flex items-center justify-center shrink-0">
+                      {getCategoryIcon(item.category_icon || item.category_name, "w-5 h-5")}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-bold text-slate-800 break-words whitespace-normal line-clamp-2">
+                        {item.title}
+                        {item.is_installment && (
+                          <span className="inline-block ml-1.5 text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full align-middle">
+                            {item.installment_number}/{item.total_installments}
+                          </span>
+                        )}
+                        {item.is_recurring && (
+                          <span className="inline-block ml-1.5 text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full align-middle">
+                            Recorrente
+                          </span>
+                        )}
+                      </div>
+                      {/* Metadados Desktop */}
+                      <div className="hidden sm:flex text-xs text-slate-400 mt-0.5 items-center space-x-2">
+                        <span>{item.due_date ? `Vencimento: ${formatDate(item.due_date)}` : `Data: ${formatDate(item.date)}`}</span>
+                        <span>• {item.category_name}</span>
+                        {item.account_name && <span>• {item.account_name}</span>}
+                        {item.credit_card_name && <span>• {item.credit_card_name}</span>}
+                      </div>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-slate-800 break-words whitespace-normal line-clamp-2">
-                      {item.title}
-                      {item.is_installment && (
-                        <span className="inline-block ml-2 text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full align-middle">
-                          {item.installment_number}/{item.total_installments}
-                        </span>
-                      )}
-                      {item.is_recurring && (
-                        <span className="inline-block ml-2 text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full align-middle">
-                          Recorrente
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-0.5 flex items-center space-x-2">
-                      <span>{item.due_date ? `Vencimento: ${formatDate(item.due_date)}` : `Data: ${formatDate(item.date)}`}</span>
-                      {item.account_name && <span>• {item.account_name}</span>}
-                      {item.credit_card_name && <span>• {item.credit_card_name}</span>}
-                    </div>
+
+                  {/* Valor Mobile */}
+                  <div className="sm:hidden text-right shrink-0">
+                    <span className="text-sm font-black text-slate-900">
+                      {formatCurrency(item.amount)}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 shrink-0">
-                  <span className="text-sm font-black text-slate-900">
-                    {formatCurrency(item.amount)}
-                  </span>
-                  <button
-                    onClick={() => handleToggleStatus(item.id, item.status)}
-                    className={`pastel-badge text-xs font-bold cursor-pointer transition-all active:scale-95 ${
-                      item.status === 'PAGA'
-                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        : item.status === 'ATRASADA'
-                        ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                        : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                    }`}
-                  >
-                    {item.status === 'PAGA' ? 'Pago' : item.status === 'ATRASADA' ? 'Atrasado' : 'Pendente'}
-                  </button>
+                {/* Linha 2 Mobile: Metadados + Status Badge + Excluir */}
+                <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 pl-13 sm:pl-0 shrink-0">
+                  {/* Metadados Mobile */}
+                  <div className="sm:hidden text-[11px] text-slate-400 truncate flex items-center space-x-1.5 min-w-0 flex-1">
+                    <span>{item.due_date ? formatDate(item.due_date) : formatDate(item.date)}</span>
+                    <span>• {item.category_name}</span>
+                    {item.credit_card_name ? <span>• {item.credit_card_name}</span> : item.account_name ? <span>• {item.account_name}</span> : null}
+                  </div>
 
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-1.5 text-slate-300 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50"
-                    title="Excluir"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Valor Desktop */}
+                  <div className="hidden sm:block text-right">
+                    <span className="text-sm font-black text-slate-900">
+                      {formatCurrency(item.amount)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={() => handleToggleStatus(item.id, item.status)}
+                      className={`pastel-badge text-xs font-bold cursor-pointer transition-all active:scale-95 ${
+                        item.status === 'PAGA'
+                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          : item.status === 'ATRASADA'
+                          ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                          : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                      }`}
+                    >
+                      {item.status === 'PAGA' ? 'Pago' : item.status === 'ATRASADA' ? 'Atrasado' : 'Pendente'}
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="p-1.5 text-slate-300 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50"
+                      title="Excluir"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

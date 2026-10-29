@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -9,10 +9,11 @@ import {
   Landmark,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
 import { api } from '../services/api';
-import { CategoryDonutChart } from '../components/Charts/CategoryDonutChart';
+import { CategoryDonutChart, getDistinctCategoryColor } from '../components/Charts/CategoryDonutChart';
 import { MonthlyEvolutionChart } from '../components/Charts/MonthlyEvolutionChart';
 import { formatCurrency } from '../utils/helpers';
 
@@ -21,21 +22,41 @@ export function DashboardPage({ onNavigate }) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const data = await api.dashboard.getAnalytics(currentMonth, currentYear);
-      setAnalytics(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const cacheRef = useRef({});
+  const activeReqRef = useRef(0);
 
   useEffect(() => {
-    loadData();
+    const key = `${currentYear}-${currentMonth}`;
+    const reqId = ++activeReqRef.current;
+
+    // Se temos os dados em cache, exibe imediatamente (0ms de espera)
+    if (cacheRef.current[key]) {
+      setAnalytics(cacheRef.current[key]);
+      setLoading(false);
+    } else if (!analytics) {
+      setLoading(true);
+    }
+
+    setIsUpdating(true);
+    api.dashboard.getAnalytics(currentMonth, currentYear)
+      .then((data) => {
+        // Previne condição de corrida: só atualiza se for a requisição mais recente
+        if (reqId === activeReqRef.current) {
+          cacheRef.current[key] = data;
+          setAnalytics(data);
+          setLoading(false);
+          setIsUpdating(false);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (reqId === activeReqRef.current) {
+          setLoading(false);
+          setIsUpdating(false);
+        }
+      });
   }, [currentMonth, currentYear]);
 
   const handlePrevMonth = () => {
@@ -81,15 +102,20 @@ export function DashboardPage({ onNavigate }) {
           <button
             onClick={handlePrevMonth}
             className="p-1 rounded-full text-slate-500 hover:text-[#D83A6F] transition-colors"
+            title="Mês anterior"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-xs font-bold text-slate-800 px-3 select-none">
-            {analytics?.selected_period}
-          </span>
+          <div className="flex items-center px-3">
+            <span className="text-xs font-bold text-slate-800 select-none">
+              {analytics?.selected_period}
+            </span>
+            {isUpdating && <Loader2 className="w-3.5 h-3.5 text-[#D83A6F] animate-spin ml-2 shrink-0" />}
+          </div>
           <button
             onClick={handleNextMonth}
             className="p-1 rounded-full text-slate-500 hover:text-[#D83A6F] transition-colors"
+            title="Próximo mês"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -197,10 +223,13 @@ export function DashboardPage({ onNavigate }) {
             />
           </div>
           <div className="space-y-2 mt-4 max-h-36 overflow-y-auto pr-1">
-            {analytics?.category_distribution?.map((cat) => (
-              <div key={cat.category_id} className="flex items-center justify-between text-xs">
+            {analytics?.category_distribution?.map((cat, idx) => (
+              <div key={cat.category_id || idx} className="flex items-center justify-between text-xs">
                 <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                  <span 
+                    className="w-2.5 h-2.5 rounded-full" 
+                    style={{ backgroundColor: getDistinctCategoryColor(cat, idx, analytics?.category_distribution) }} 
+                  />
                   <span className="text-slate-700 font-medium">{cat.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">

@@ -116,18 +116,62 @@ def reset_data(
     db: Session = Depends(get_db)
 ):
     """
-    Reseta apenas os dados da organização (transações, contas, etc), preservando a conta de usuário.
+    Reseta todos os dados financeiros do usuário (transações, faturas, compromissos, contas, cartões e regras),
+    preservando estritamente a conta cadastral, a autenticação e as credenciais.
+    Recria uma conta corrente zerada padrão e as categorias do sistema limpas.
     """
-    db.query(Alert).filter(Alert.user_id == current_user.id).delete()
-    db.query(Budget).filter(Budget.user_id == current_user.id).delete()
-    db.query(Transaction).filter(Transaction.user_id == current_user.id).delete()
-    db.query(InstallmentPurchase).filter(InstallmentPurchase.user_id == current_user.id).delete()
-    db.query(RecurringRule).filter(RecurringRule.user_id == current_user.id).delete()
-    db.query(CreditCard).filter(CreditCard.user_id == current_user.id).delete()
-    db.query(Account).filter(Account.user_id == current_user.id).delete()
-    # Categorias personalizadas também são apagadas, mantendo só as padrão globais
-    db.query(Category).filter(Category.user_id == current_user.id).delete()
-    return {"message": "Dados financeiros resetados com sucesso."}
+    from ..services.seed_helper import seed_default_categories
+    from ..services.audit_engine import log_audit
+
+    try:
+        # 1. Exclui alertas e orçamentos vinculados
+        db.query(Alert).filter(Alert.user_id == current_user.id).delete(synchronize_session=False)
+        db.query(Budget).filter(Budget.user_id == current_user.id).delete(synchronize_session=False)
+        
+        # 2. Exclui todas as transações (despesas, receitas, parcelas)
+        db.query(Transaction).filter(Transaction.user_id == current_user.id).delete(synchronize_session=False)
+        
+        # 3. Exclui compras-mãe parceladas e regras recorrentes
+        db.query(InstallmentPurchase).filter(InstallmentPurchase.user_id == current_user.id).delete(synchronize_session=False)
+        db.query(RecurringRule).filter(RecurringRule.user_id == current_user.id).delete(synchronize_session=False)
+        
+        # 4. Exclui cartões e contas
+        db.query(CreditCard).filter(CreditCard.user_id == current_user.id).delete(synchronize_session=False)
+        db.query(Account).filter(Account.user_id == current_user.id).delete(synchronize_session=False)
+        
+        # 5. Exclui categorias personalizadas criadas pelo usuário
+        db.query(Category).filter(Category.user_id == current_user.id).delete(synchronize_session=False)
+        
+        # 6. Recria uma Conta Corrente inicial zerada padrão para o usuário
+        clean_account = Account(
+            user_id=current_user.id,
+            name="Conta Corrente",
+            type="CORRENTE",
+            color="#3B82F6",
+            initial_balance=0.0,
+            is_active=True
+        )
+        db.add(clean_account)
+        
+        # 7. Recria as categorias padrão do sistema limpas
+        seed_default_categories(db, current_user.id)
+        
+        # 8. Registra log de auditoria
+        log_audit(db, current_user.id, "USER", current_user.id, "RESET_DATA", {"action": "clean_reset"})
+        
+        # 9. Executa o commit atômico no banco de dados relacional
+        db.commit()
+        
+        return {
+            "message": "Todos os dados financeiros foram resetados com sucesso. Sua conta está limpa e pronta para uso.",
+            "status": "success"
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Falha ao resetar dados financeiros: {str(e)}"
+        )
 
 
 @router.post("/remove-demo-data")

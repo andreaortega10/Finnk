@@ -119,7 +119,13 @@ def list_transactions(
         query = query.filter(extract('year', Transaction.date) == year)
     if search:
         s = f"%{search.strip()}%"
-        query = query.filter(or_(Transaction.title.ilike(s), Transaction.description.ilike(s)))
+        query = query.outerjoin(Category, Transaction.category_id == Category.id).filter(
+            or_(
+                Transaction.title.ilike(s),
+                Transaction.description.ilike(s),
+                Category.name.ilike(s)
+            )
+        )
     if is_compromisso is True:
         # Compromissos são despesas a pagar ou a vencer
         query = query.filter(Transaction.type == "DESPESA")
@@ -148,6 +154,24 @@ def create_transaction(
     ).first()
     if not category:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Categoria obrigatória e válida não informada (RN01).")
+
+    # Validação de limite no cartão se for compra em cartão de crédito (Correção 8)
+    if tx_data.credit_card_id and tx_data.type.upper() == "DESPESA":
+        card = db.query(CreditCard).filter(
+            CreditCard.id == tx_data.credit_card_id,
+            CreditCard.user_id == current_user.id
+        ).first()
+        if not card:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cartão de crédito não encontrado.")
+        from ..services.financial_engine import calculate_card_metrics
+        available_limit, _ = calculate_card_metrics(db, card)
+        if tx_data.amount > available_limit:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Limite insuficiente no cartão '{card.name}'. Limite disponível: R$ {available_limit:.2f}, valor da compra: R$ {tx_data.amount:.2f}."
+            )
+        # Compras com cartão de crédito não debitam imediatamente da conta bancária
+        tx_data.account_id = None
 
     if not tx_data.account_id and not tx_data.credit_card_id:
         # Se não informado, associa à primeira conta ativa do usuário

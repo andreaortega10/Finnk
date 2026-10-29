@@ -42,6 +42,15 @@ def create_installment_purchase(
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada.")
 
+    # Validação estrita de limite disponível do cartão (RN05 / Correção 8)
+    from .financial_engine import calculate_card_metrics
+    available_limit, _ = calculate_card_metrics(db, card)
+    if total_amount > available_limit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Limite insuficiente no cartão '{card.name}'. Limite disponível: R$ {available_limit:.2f}, valor da compra: R$ {total_amount:.2f}."
+        )
+
     # 1. Cria a compra-mãe
     mother_purchase = InstallmentPurchase(
         user_id=user_id,
@@ -85,6 +94,7 @@ def create_installment_purchase(
             description=f"Parcela {i} de {total_installments} referente a: {title}" + (f" - {description}" if description else ""),
             amount=amount,
             date=installment_date,
+            due_date=installment_date,
             type="DESPESA",
             status=initial_status,
             payment_method="CARTAO",

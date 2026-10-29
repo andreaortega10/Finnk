@@ -44,7 +44,7 @@ def calculate_account_balances(
     paid_expense_today = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id == account.id,
         Transaction.type == "DESPESA",
-        Transaction.status == "PAGA",
+        Transaction.status.in_(["PAGA", "RECEBIDA"]),
         Transaction.date <= today
     ).scalar() or 0.0
 
@@ -487,29 +487,45 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
         Transaction.status == "PENDENTE"
     ).scalar() or 0.0
 
-    # 4. Evolução mensal (últimos 6 meses até o mês selecionado)
+    # 4. Evolução mensal (últimos 6 meses até o mês selecionado - Otimizado com consulta agregada única)
+    target_months = []
+    cy, cm = sel_year, sel_month
+    for _ in range(6):
+        target_months.append((cy, cm))
+        cm -= 1
+        if cm < 1:
+            cm = 12
+            cy -= 1
+    target_months.reverse()
+
+    min_y, min_m = target_months[0]
+    min_date = datetime.date(min_y, min_m, 1)
+    max_y, max_m = target_months[-1]
+    _, max_d = calendar.monthrange(max_y, max_m)
+    max_date = datetime.date(max_y, max_m, max_d)
+
+    monthly_rows = db.query(
+        extract('year', Transaction.date).label('y'),
+        extract('month', Transaction.date).label('m'),
+        Transaction.type.label('tp'),
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user.id,
+        Transaction.date >= min_date,
+        Transaction.date <= max_date,
+        Transaction.status.in_(["PAGA", "RECEBIDA"])
+    ).group_by(
+        extract('year', Transaction.date),
+        extract('month', Transaction.date),
+        Transaction.type
+    ).all()
+
+    month_totals = {(int(r.y), int(r.m), str(r.tp).upper()): float(r.total) for r in monthly_rows}
+
     evolution_data = []
-    for i in range(6):
-        m_date = today.replace(day=1) - datetime.timedelta(days=(5 - i) * 30)
-        m_num = m_date.month
-        y_num = m_date.year
-
-        m_inc = db.query(func.sum(Transaction.amount)).filter(
-            Transaction.user_id == user.id,
-            Transaction.type == "RECEITA",
-            Transaction.status.in_(["PAGA", "RECEBIDA"]),
-            extract('month', Transaction.date) == m_num,
-            extract('year', Transaction.date) == y_num
-        ).scalar() or 0.0
-
-        m_exp = db.query(func.sum(Transaction.amount)).filter(
-            Transaction.user_id == user.id,
-            Transaction.type == "DESPESA",
-            Transaction.status == "PAGA",
-            extract('month', Transaction.date) == m_num,
-            extract('year', Transaction.date) == y_num
-        ).scalar() or 0.0
-
+    for (y_num, m_num) in target_months:
+        m_inc = month_totals.get((y_num, m_num, "RECEITA"), 0.0)
+        m_exp = month_totals.get((y_num, m_num, "DESPESA"), 0.0)
         evolution_data.append({
             "month_num": m_num,
             "year": y_num,
@@ -519,7 +535,7 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
             "saldo": round(m_inc - m_exp, 2)
         })
 
-    # 5. Distribuição de gastos por categoria (com lookups em memória)
+    # 5. Distribuição de gastos por categoria (ordenada descrescentemente)
     cat_query = db.query(
         Transaction.category_id,
         func.sum(Transaction.amount).label("total")
@@ -530,10 +546,13 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
         extract('year', Transaction.date) == sel_year
     ).group_by(Transaction.category_id).all()
 
+    # Ordena categorias do maior gasto para o menor
+    sorted_cat_query = sorted(cat_query, key=lambda x: x.total or 0.0, reverse=True)
+
     user_cats_dash = {c.id: c for c in db.query(Category).filter(Category.user_id == user.id).all()}
-    total_exp_all = sum(item.total for item in cat_query) or 1.0
+    total_exp_all = sum(item.total for item in sorted_cat_query) or 1.0
     category_distribution = []
-    for item in cat_query:
+    for item in sorted_cat_query:
         cat = user_cats_dash.get(item.category_id)
         if cat:
             category_distribution.append({
