@@ -127,7 +127,22 @@ def reset_data(
     db.query(Account).filter(Account.user_id == current_user.id).delete()
     # Categorias personalizadas também são apagadas, mantendo só as padrão globais
     db.query(Category).filter(Category.user_id == current_user.id).delete()
-    db.query(AuditLog).filter(AuditLog.user_id == current_user.id).delete()
-    db.commit()
-
     return {"message": "Dados financeiros resetados com sucesso."}
+
+
+@router.post("/remove-demo-data")
+def remove_demo_data_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Remove de forma cirúrgica e segura apenas os dados de demonstração (Mariana),
+    preservando totalmente contas bancárias, credenciais e lançamentos legítimos.
+    """
+    from ..services.seed_helper import remove_demo_data
+    from ..services.audit_engine import log_audit
+
+    result = remove_demo_data(db, current_user.id)
+    log_audit(db, current_user.id, "USER", current_user.id, "REMOVE_DEMO_DATA")
+    return result
+

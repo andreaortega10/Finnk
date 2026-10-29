@@ -6,47 +6,65 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('finnk_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('finnk_token'));
-  const [loading, setLoading] = useState(true);
+  // Não bloqueia a interface se já possuir dados válidos em cache
+  const [loading, setLoading] = useState(() => {
+    const saved = localStorage.getItem('finnk_user');
+    const savedToken = localStorage.getItem('finnk_token');
+    return !(saved && savedToken);
+  });
 
   useEffect(() => {
-    async function loadUser() {
-      if (token) {
+    let isMounted = true;
+    async function initAuth() {
+      const savedToken = localStorage.getItem('finnk_token');
+      if (savedToken) {
         try {
           const profile = await api.auth.getProfile();
-          setUser(profile);
-          localStorage.setItem('finnk_user', JSON.stringify(profile));
+          if (isMounted) {
+            setUser(profile);
+            localStorage.setItem('finnk_user', JSON.stringify(profile));
+          }
         } catch (err) {
-          logout();
+          if (isMounted) logout();
         }
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     }
 
-    loadUser();
+    initAuth();
 
     const handleUnauthorized = () => logout();
     window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
-  }, [token]);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, []);
 
   const login = async (email, password) => {
     const res = await api.auth.login({ email, password });
-    setToken(res.access_token);
-    setUser(res.user);
     localStorage.setItem('finnk_token', res.access_token);
     localStorage.setItem('finnk_user', JSON.stringify(res.user));
+    setToken(res.access_token);
+    setUser(res.user);
+    setLoading(false);
     return res;
   };
 
   const register = async (name, email, password) => {
     const res = await api.auth.register({ name, email, password });
-    setToken(res.access_token);
-    setUser(res.user);
     localStorage.setItem('finnk_token', res.access_token);
     localStorage.setItem('finnk_user', JSON.stringify(res.user));
+    setToken(res.access_token);
+    setUser(res.user);
+    setLoading(false);
     return res;
   };
 
@@ -57,10 +75,11 @@ export function AuthProvider({ children }) {
       name: googleUser.name,
       photo_url: googleUser.photoUrl
     });
-    setToken(res.access_token);
-    setUser(res.user);
     localStorage.setItem('finnk_token', res.access_token);
     localStorage.setItem('finnk_user', JSON.stringify(res.user));
+    setToken(res.access_token);
+    setUser(res.user);
+    setLoading(false);
     return res;
   };
 

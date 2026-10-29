@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from ..models import Category, User, Account, CreditCard, Transaction, InstallmentPurchase, RecurringRule, Budget
+from sqlalchemy import or_
+from ..models import Category, User, Account, CreditCard, Transaction, InstallmentPurchase, RecurringRule, Budget, Alert
 import datetime
 
 DEFAULT_CATEGORIES = [
@@ -241,3 +242,123 @@ def seed_demo_data(db: Session, user: User):
     db.add_all([b_alimentacao, b_lazer, b_moradia])
 
     db.commit()
+
+
+def remove_demo_data(db: Session, user_id: int) -> dict:
+    """
+    Remove de forma cirúrgica e segura apenas os dados de demonstração (Mock Mariana)
+    do usuário, preservando totalmente contas reais, transações legítimas e preferências.
+    """
+    demo_tx_titles = [
+        "Salário Mensal", "Aluguel", "Internet", "Netflix",
+        "Mercado", "Restaurante", "Fatura Cartão Nubank", "Conta de Luz"
+    ]
+    demo_inst_titles = ["Smartphone Galaxy"]
+    demo_rec_titles = ["Aluguel", "Salário Empresa"]
+    demo_card_digits = ["4582", "7391"]
+
+    # 1. Parcelamentos de demonstração
+    demo_installments = db.query(InstallmentPurchase).filter(
+        InstallmentPurchase.user_id == user_id,
+        InstallmentPurchase.title.in_(demo_inst_titles)
+    ).all()
+    inst_ids = [inst.id for inst in demo_installments]
+    deleted_inst_count = len(demo_installments)
+
+    # 2. Recorrências de demonstração
+    demo_recurrings = db.query(RecurringRule).filter(
+        RecurringRule.user_id == user_id,
+        RecurringRule.title.in_(demo_rec_titles)
+    ).all()
+    rec_ids = [r.id for r in demo_recurrings]
+    deleted_rec_count = len(demo_recurrings)
+
+    # 3. Transações de demonstração
+    tx_conditions = [
+        Transaction.title.in_(demo_tx_titles),
+        Transaction.description.ilike("%Mariana%"),
+        Transaction.description.ilike("%Enel Energia Elétrica%"),
+        Transaction.description.ilike("%Internet residencial - Claro%"),
+        Transaction.description.ilike("%Assinatura mensal streaming%"),
+        Transaction.description.ilike("%Compra parcelada no Nubank%")
+    ]
+    if inst_ids:
+        tx_conditions.append(Transaction.installment_id.in_(inst_ids))
+    if rec_ids:
+        tx_conditions.append(Transaction.recurring_id.in_(rec_ids))
+
+    demo_txs = db.query(Transaction).filter(
+        Transaction.user_id == user_id,
+        or_(*tx_conditions)
+    ).all()
+    deleted_tx_count = len(demo_txs)
+    demo_tx_ids = [t.id for t in demo_txs]
+
+    if demo_tx_ids:
+        db.query(Alert).filter(
+            Alert.user_id == user_id,
+            Alert.related_id.in_(demo_tx_ids)
+        ).delete(synchronize_session=False)
+
+        db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.id.in_(demo_tx_ids)
+        ).delete(synchronize_session=False)
+
+    if inst_ids:
+        db.query(InstallmentPurchase).filter(
+            InstallmentPurchase.user_id == user_id,
+            InstallmentPurchase.id.in_(inst_ids)
+        ).delete(synchronize_session=False)
+
+    if rec_ids:
+        db.query(RecurringRule).filter(
+            RecurringRule.user_id == user_id,
+            RecurringRule.id.in_(rec_ids)
+        ).delete(synchronize_session=False)
+
+    # 4. Cartões de demonstração (se não possuírem transações legítimas remanescentes)
+    demo_cards = db.query(CreditCard).filter(
+        CreditCard.user_id == user_id,
+        CreditCard.last_four_digits.in_(demo_card_digits)
+    ).all()
+    deleted_cards_count = 0
+    for card in demo_cards:
+        remaining_tx = db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.credit_card_id == card.id
+        ).count()
+        if remaining_tx == 0:
+            db.delete(card)
+            deleted_cards_count += 1
+
+    # 5. Conta "Carteira" do demo se não houver mais transações vinculadas
+    demo_acc = db.query(Account).filter(
+        Account.user_id == user_id,
+        Account.name == "Carteira",
+        Account.type == "CARTEIRA"
+    ).first()
+    if demo_acc:
+        remaining_tx = db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.account_id == demo_acc.id
+        ).count()
+        if remaining_tx == 0:
+            db.delete(demo_acc)
+
+    # 6. Orçamentos padrão do seed (se ainda nos valores iniciais)
+    db.query(Budget).filter(
+        Budget.user_id == user_id,
+        Budget.monthly_limit.in_([600.0, 400.0, 1200.0])
+    ).delete(synchronize_session=False)
+
+    db.commit()
+
+    return {
+        "message": f"Dados de demonstração removidos com sucesso! ({deleted_tx_count} transações, {deleted_cards_count} cartões e {deleted_rec_count} recorrências removidas).",
+        "deleted_transactions": deleted_tx_count,
+        "deleted_cards": deleted_cards_count,
+        "deleted_installments": deleted_inst_count,
+        "deleted_recurrings": deleted_rec_count
+    }
+

@@ -15,6 +15,10 @@ export function RegisterPage({ onSwitchToLogin }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  React.useEffect(() => {
+    api.auth.ping();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');

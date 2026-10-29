@@ -6,11 +6,12 @@ from .audit_engine import log_audit
 
 def generate_recurring_transactions_for_rule(
     db: Session,
-    rule: RecurringRule
+    rule: RecurringRule,
+    months_ahead: int = 12
 ):
     """
-    Gera lanamentos automǭticos at a data limite (end_date) definida pelo usuǭrio.
-    O usuǭrio tem controle total do intervalo.
+    Gera lançamentos automáticos até a data limite (end_date) definida pelo usuário
+    ou pelo horizonte months_ahead.
     """
     if not rule.is_active:
         return
@@ -18,8 +19,8 @@ def generate_recurring_transactions_for_rule(
     today = datetime.date.today()
     limit_date = rule.end_date
     if not limit_date:
-        # Se não informado end_date, projeta até 12 meses a partir do start_date
-        limit_date = rule.start_date + relativedelta(months=12)
+        # Se não informado end_date, projeta até months_ahead a partir do start_date
+        limit_date = rule.start_date + relativedelta(months=months_ahead or 12)
 
     current_date = rule.start_date
     

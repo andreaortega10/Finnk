@@ -4,6 +4,7 @@ import {
   Type,
   DollarSign,
   Calendar as CalendarIcon,
+  Clock,
   Tag,
   CheckCircle2,
   RefreshCw,
@@ -13,13 +14,16 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 
-export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategories = [] }) {
+export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategories = [], defaultIsRecurring = false }) {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [hasDueDate, setHasDueDate] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [status, setStatus] = useState('PENDENTE');
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('PIX');
+  const [isRecurring, setIsRecurring] = useState(defaultIsRecurring);
   const [description, setDescription] = useState('');
   
   const [categories, setCategories] = useState(initialCategories);
@@ -48,13 +52,15 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
       }
       loadData();
       
-      // Data padrão: hoje formatada em YYYY-MM-DD
       const today = new Date().toISOString().split('T')[0];
+      setDate(today);
       setDueDate(today);
+      setHasDueDate(false);
+      setIsRecurring(defaultIsRecurring);
       setErrorMsg('');
       setShowSuccessBanner(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultIsRecurring]);
 
   if (!isOpen) return null;
 
@@ -63,7 +69,7 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
     setErrorMsg('');
 
     if (!title.trim()) {
-      setErrorMsg('Por favor, informe o título do compromisso.');
+      setErrorMsg('Por favor, informe o título da despesa/compromisso.');
       return;
     }
     const numAmount = parseFloat(amount.replace(',', '.'));
@@ -71,8 +77,8 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
       setErrorMsg('O valor deve ser maior que zero (RN02).');
       return;
     }
-    if (!dueDate) {
-      setErrorMsg('Por favor, informe a data de vencimento.');
+    if (!date) {
+      setErrorMsg('Por favor, informe a data da movimentação.');
       return;
     }
     if (!categoryId) {
@@ -82,9 +88,11 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
 
     setLoading(true);
     try {
+      const finalDueDate = (hasDueDate && dueDate) ? dueDate : undefined;
+
       if (isRecurring) {
         // Cadastra como regra de recorrência (RN09)
-        const dueDay = parseInt(dueDate.split('-')[2], 10) || 10;
+        const dueDay = parseInt((finalDueDate || date).split('-')[2], 10) || 10;
         await api.recurring.create({
           title: title.trim(),
           description: description.trim() || undefined,
@@ -92,23 +100,23 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
           type: 'DESPESA',
           frequency: 'MENSAL',
           due_day: dueDay,
-          start_date: dueDate,
+          start_date: date,
           category_id: parseInt(categoryId, 10),
           account_id: selectedAccount ? parseInt(selectedAccount, 10) : undefined
         });
       } else {
-        // Cadastra como transação de compromisso
+        // Cadastra como transação de despesa (vencimento opcional)
         await api.transactions.create({
           title: title.trim(),
           description: description.trim() || undefined,
           amount: numAmount,
-          date: dueDate,
-          due_date: dueDate,
+          date: date,
+          due_date: finalDueDate,
           type: 'DESPESA',
           category_id: parseInt(categoryId, 10),
           account_id: selectedAccount ? parseInt(selectedAccount, 10) : undefined,
           status: status,
-          payment_method: 'BOLETO'
+          payment_method: paymentMethod
         });
       }
 
@@ -215,20 +223,81 @@ export function NewCompromissoModal({ isOpen, onClose, onSuccess, initialCategor
             </div>
           </div>
 
-          {/* Vencimento */}
+          {/* Data da Transação (Obrigatória) */}
           <div className="flex items-start space-x-3">
             <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-[#D83A6F] shrink-0 mt-1">
               <CalendarIcon className="w-4 h-4" />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Vencimento *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Data da Despesa / Compra *</label>
               <input
                 type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-[#D83A6F] focus:ring-2 focus:ring-pink-100 text-sm outline-none transition-all text-slate-800"
                 required
               />
+            </div>
+          </div>
+
+          {/* Vencimento Opcional */}
+          <div className="flex items-start space-x-3">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 shrink-0 mt-1">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-700">Data de Vencimento</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !hasDueDate;
+                    setHasDueDate(next);
+                    if (next && !dueDate) setDueDate(date);
+                  }}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition-all ${
+                    hasDueDate
+                      ? 'bg-pink-100 text-[#D83A6F]'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                >
+                  {hasDueDate ? '✓ Ativo' : '+ Adicionar'}
+                </button>
+              </div>
+              {hasDueDate ? (
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-[#D83A6F] focus:ring-2 focus:ring-pink-100 text-sm outline-none transition-all text-slate-800"
+                />
+              ) : (
+                <p className="text-[11px] text-slate-400">
+                  Opcional. Ideal para pagamentos imediatos (Pix, débito ou dinheiro).
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Forma de Pagamento */}
+          <div className="flex items-start space-x-3">
+            <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-[#D83A6F] shrink-0 mt-1">
+              <Wallet className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Forma de Pagamento</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-[#D83A6F] focus:ring-2 focus:ring-pink-100 text-sm outline-none transition-all bg-white text-slate-800"
+              >
+                <option value="PIX">Pix</option>
+                <option value="BOLETO">Boleto Bancário</option>
+                <option value="CARTAO">Cartão de Crédito</option>
+                <option value="DEBITO">Débito em Conta</option>
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="OUTRO">Outro</option>
+              </select>
             </div>
           </div>
 

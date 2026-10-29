@@ -70,7 +70,7 @@ export function DashboardPage({ onNavigate }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Dashboard Analítico
+            Análise Geral
           </h2>
           <p className="text-xs text-slate-500">
             Visão consolidada de saldos, evolução mensal, categorias e obrigações.
@@ -114,20 +114,30 @@ export function DashboardPage({ onNavigate }) {
           </span>
         </div>
 
-        {/* Saldo Projetado */}
-        <div className="pastel-card rounded-3xl p-5 border-l-4 border-l-indigo-500">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500">Saldo Projetado (Futuro)</span>
-            <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Clock className="w-4 h-4 stroke-[2.2]" />
+        {/* Saldo Projetado com horizonte explícito e composição */}
+        <div className="pastel-card rounded-3xl p-5 border-l-4 border-l-indigo-500 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-600 line-clamp-1" title={analytics?.projected_balance_label}>
+                {analytics?.projected_balance_label || 'Saldo Projetado'}
+              </span>
+              <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 stroke-[2.2]" />
+              </div>
+            </div>
+            <div className="text-2xl font-black text-slate-900 tracking-tight">
+              {formatCurrency(analytics?.projected_balance)}
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">
-            {formatCurrency(analytics?.projected_balance)}
+          
+          <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1">
+            <span className="text-[11px] font-medium text-slate-600 block">
+              {analytics?.projection_details || 'Saldo de abertura + receitas previstas - despesas'}
+            </span>
+            <span className="text-[10px] text-slate-400 block font-medium">
+              Data limite do período: {analytics?.projected_balance_date}
+            </span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            Considera lançamentos futuros pendentes
-          </span>
         </div>
 
         {/* Receitas Recebidas vs Previstas */}

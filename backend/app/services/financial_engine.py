@@ -1,4 +1,5 @@
 import datetime
+import calendar
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, or_, and_
 from ..models import Account, CreditCard, Transaction, Category, Budget, Alert, User
@@ -11,52 +12,150 @@ MONTH_NAMES_PT = {
     9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
 }
 
-def calculate_account_balances(db: Session, account: Account) -> tuple[float, float]:
+def calculate_account_balances(
+    db: Session,
+    account: Account,
+    target_month: int = None,
+    target_year: int = None
+) -> tuple[float, float]:
     """
-    RN04:
-    Saldo atual = saldo inicial + receitas pagas - despesas pagas
-    Saldo projetado = saldo atual + receitas futuras pendentes - despesas futuras pendentes
+    Calcula com rigor contábil:
+    1. Saldo Atual (Real no dia de hoje):
+       Saldo inicial da conta + receitas realizadas até hoje - despesas pagas até hoje.
+    2. Saldo Projetado ao final do período (RN 4.1):
+       Saldo de abertura do período + receitas previstas para o período - despesas previstas para o período.
     """
     today = datetime.date.today()
+    sel_month = target_month or today.month
+    sel_year = target_year or today.year
 
-    # Receitas pagas
-    paid_income = db.query(func.sum(Transaction.amount)).filter(
+    last_day = calendar.monthrange(sel_year, sel_month)[1]
+    period_start = datetime.date(sel_year, sel_month, 1)
+    period_end = datetime.date(sel_year, sel_month, last_day)
+
+    # 1. Saldo Atual Real (no dia de hoje)
+    paid_income_today = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id == account.id,
         Transaction.type == "RECEITA",
-        Transaction.status.in_(["PAGA", "RECEBIDA"])
+        Transaction.status.in_(["PAGA", "RECEBIDA"]),
+        Transaction.date <= today
     ).scalar() or 0.0
 
-    # Despesas pagas
-    paid_expense = db.query(func.sum(Transaction.amount)).filter(
+    paid_expense_today = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id == account.id,
         Transaction.type == "DESPESA",
-        Transaction.status == "PAGA"
+        Transaction.status == "PAGA",
+        Transaction.date <= today
     ).scalar() or 0.0
 
-    current_balance = round(account.initial_balance + paid_income - paid_expense, 2)
+    current_balance = round(account.initial_balance + paid_income_today - paid_expense_today, 2)
 
-    # Receitas futuras pendentes (data >= hoje)
-    future_income = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.account_id == account.id,
-        Transaction.type == "RECEITA",
-        Transaction.status == "PENDENTE",
-        Transaction.date >= today
-    ).scalar() or 0.0
+    # 2. Saldo Projetado
+    if target_month is None:
+        # Sem período específico: horizonte de todas as pendências futuras
+        future_inc = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "RECEITA",
+            Transaction.status == "PENDENTE",
+            Transaction.date >= today
+        ).scalar() or 0.0
 
-    # Despesas futuras pendentes (vencimento ou data futura)
-    future_expense = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.account_id == account.id,
-        Transaction.type == "DESPESA",
-        Transaction.status == "PENDENTE",
-        or_(
-            Transaction.due_date >= today,
-            and_(Transaction.due_date.is_(None), Transaction.date >= today)
-        )
-    ).scalar() or 0.0
+        future_exp = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "DESPESA",
+            Transaction.status.in_(["PENDENTE", "ATRASADA"]),
+            or_(
+                Transaction.due_date >= today,
+                and_(Transaction.due_date.is_(None), Transaction.date >= today)
+            )
+        ).scalar() or 0.0
 
-    projected_balance = round(current_balance + future_income - future_expense, 2)
+        projected_balance = round(current_balance + future_inc - future_exp, 2)
+    elif period_end < today:
+        # Período já encerrado no passado: saldo consolidado até o último dia daquele mês
+        past_inc = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "RECEITA",
+            Transaction.status.in_(["PAGA", "RECEBIDA"]),
+            Transaction.date <= period_end
+        ).scalar() or 0.0
+
+        past_exp = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "DESPESA",
+            Transaction.status == "PAGA",
+            Transaction.date <= period_end
+        ).scalar() or 0.0
+
+        projected_balance = round(account.initial_balance + past_inc - past_exp, 2)
+    elif period_start <= today <= period_end:
+        # Mês atual: Saldo atual + pendências restantes dentro do mês
+        rem_inc = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "RECEITA",
+            Transaction.status == "PENDENTE",
+            Transaction.date >= today,
+            Transaction.date <= period_end
+        ).scalar() or 0.0
+
+        rem_exp = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "DESPESA",
+            Transaction.status.in_(["PENDENTE", "ATRASADA"]),
+            or_(
+                and_(Transaction.due_date.isnot(None), Transaction.due_date >= today, Transaction.due_date <= period_end),
+                and_(Transaction.due_date.is_(None), Transaction.date >= today, Transaction.date <= period_end)
+            )
+        ).scalar() or 0.0
+
+        projected_balance = round(current_balance + rem_inc - rem_exp, 2)
+    else:
+        # Mês futuro (period_start > today):
+        # Saldo de abertura = Saldo atual hoje + net pendente intermediário até period_start
+        inter_inc = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "RECEITA",
+            Transaction.status == "PENDENTE",
+            Transaction.date >= today,
+            Transaction.date < period_start
+        ).scalar() or 0.0
+
+        inter_exp = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "DESPESA",
+            Transaction.status.in_(["PENDENTE", "ATRASADA"]),
+            or_(
+                and_(Transaction.due_date.isnot(None), Transaction.due_date >= today, Transaction.due_date < period_start),
+                and_(Transaction.due_date.is_(None), Transaction.date >= today, Transaction.date < period_start)
+            )
+        ).scalar() or 0.0
+
+        opening_balance = current_balance + inter_inc - inter_exp
+
+        # Movimentações previstas para o mês selecionado
+        month_inc = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "RECEITA",
+            Transaction.status == "PENDENTE",
+            Transaction.date >= period_start,
+            Transaction.date <= period_end
+        ).scalar() or 0.0
+
+        month_exp = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.id,
+            Transaction.type == "DESPESA",
+            Transaction.status.in_(["PENDENTE", "ATRASADA"]),
+            or_(
+                and_(Transaction.due_date.isnot(None), Transaction.due_date >= period_start, Transaction.due_date <= period_end),
+                and_(Transaction.due_date.is_(None), Transaction.date >= period_start, Transaction.date <= period_end)
+            )
+        ).scalar() or 0.0
+
+        projected_balance = round(opening_balance + month_inc - month_exp, 2)
 
     return current_balance, projected_balance
+
+
 
 
 def calculate_card_metrics(db: Session, card: CreditCard, month: int = None, year: int = None) -> tuple[float, float]:
@@ -169,6 +268,11 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
             "amount": next_due_tx.amount
         }
 
+    # Pre-fetch para eliminar consultas N+1 ao banco
+    user_cats = {c.id: c for c in db.query(Category).filter(Category.user_id == user.id).all()}
+    user_accs = {a.id: a for a in db.query(Account).filter(Account.user_id == user.id).all()}
+    user_cards = {c.id: c for c in db.query(CreditCard).filter(CreditCard.user_id == user.id).all()}
+
     # Despesas por categoria
     category_expenses = []
     cat_totals = {}
@@ -178,7 +282,7 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
 
     total_expense_val = sum(cat_totals.values()) or 1.0  # evitar divisão por zero
     for cat_id, amt in sorted(cat_totals.items(), key=lambda x: x[1], reverse=True):
-        cat = db.query(Category).filter(Category.id == cat_id).first()
+        cat = user_cats.get(cat_id)
         if cat:
             pct = round((amt / total_expense_val) * 100)
             category_expenses.append({
@@ -191,7 +295,7 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
             })
 
     # Resumo dos cartões
-    cards = db.query(CreditCard).filter(CreditCard.user_id == user.id).all()
+    cards = list(user_cards.values())
     cards_summary = []
     for c in cards:
         avail, inv = calculate_card_metrics(db, c, sel_month, sel_year)
@@ -213,11 +317,11 @@ def get_home_summary(db: Session, user: User, month: int = None, year: int = Non
         Transaction.date >= today
     ).order_by(Transaction.date.asc()).limit(4).all()
 
-    # Formata lista de transações
+    # Formata lista de transações com lookups em memória
     def format_tx(t: Transaction):
-        cat = db.query(Category).filter(Category.id == t.category_id).first()
-        acc = db.query(Account).filter(Account.id == t.account_id).first() if t.account_id else None
-        crd = db.query(CreditCard).filter(CreditCard.id == t.credit_card_id).first() if t.credit_card_id else None
+        cat = user_cats.get(t.category_id)
+        acc = user_accs.get(t.account_id)
+        crd = user_cards.get(t.credit_card_id)
         eff_status = t.status
         if is_tx_overdue(t, today):
             eff_status = "ATRASADA"
@@ -295,8 +399,17 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
     total_projected_balance = 0.0
     accounts_balance = []
 
+    last_day = calendar.monthrange(sel_year, sel_month)[1]
+    horizon_date_obj = datetime.date(sel_year, sel_month, last_day)
+    horizon_formatted = f"{last_day:02d}/{sel_month:02d}/{sel_year}"
+    month_name_pt = MONTH_NAMES_PT.get(sel_month, '')
+    if horizon_date_obj < today:
+        horizon_label_global = f"Saldo realizado em {month_name_pt} de {sel_year}"
+    else:
+        horizon_label_global = f"Saldo projetado ao final de {month_name_pt} de {sel_year}"
+
     for acc in accounts:
-        curr, proj = calculate_account_balances(db, acc)
+        curr, proj = calculate_account_balances(db, acc, sel_month, sel_year)
         total_current_balance += curr
         total_projected_balance += proj
         accounts_balance.append({
@@ -305,7 +418,8 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
             "type": acc.type,
             "color": acc.color,
             "current_balance": curr,
-            "projected_balance": proj
+            "projected_balance": proj,
+            "horizon_label": horizon_label_global
         })
 
     # 2. Receitas e Despesas do mês
@@ -320,6 +434,50 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
     expense_paid = sum(t.amount for t in month_txs if t.type == "DESPESA" and is_tx_paid(t))
     expense_pending = sum(t.amount for t in month_txs if t.type == "DESPESA" and is_tx_pending(t, today))
     overdue_val = sum(t.amount for t in month_txs if is_tx_overdue(t, today))
+
+    period_start = datetime.date(sel_year, sel_month, 1)
+    period_end = datetime.date(sel_year, sel_month, last_day)
+    month_name_pt = MONTH_NAMES_PT.get(sel_month, '')
+
+    total_initial = sum(acc.initial_balance for acc in accounts)
+    if period_end < today or (period_start <= today <= period_end):
+        past_inc_before = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == user.id,
+            Transaction.type == "RECEITA",
+            Transaction.status.in_(["PAGA", "RECEBIDA"]),
+            Transaction.date < period_start
+        ).scalar() or 0.0
+        past_exp_before = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == user.id,
+            Transaction.type == "DESPESA",
+            Transaction.status == "PAGA",
+            Transaction.date < period_start
+        ).scalar() or 0.0
+        opening_balance = total_initial + past_inc_before - past_exp_before
+    else:
+        inter_inc = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == user.id,
+            Transaction.type == "RECEITA",
+            Transaction.status == "PENDENTE",
+            Transaction.date >= today,
+            Transaction.date < period_start
+        ).scalar() or 0.0
+        inter_exp = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == user.id,
+            Transaction.type == "DESPESA",
+            Transaction.status.in_(["PENDENTE", "ATRASADA"]),
+            or_(
+                and_(Transaction.due_date.isnot(None), Transaction.due_date >= today, Transaction.due_date < period_start),
+                and_(Transaction.due_date.is_(None), Transaction.date >= today, Transaction.date < period_start)
+            )
+        ).scalar() or 0.0
+        opening_balance = total_current_balance + inter_inc - inter_exp
+
+    opening_balance = round(opening_balance, 2)
+    period_income_total = round(income_received + income_expected, 2)
+    period_expense_total = round(expense_paid + expense_pending + overdue_val, 2)
+
+    details_fmt = f"Abertura: R$ {opening_balance:,.2f} + Receitas: R$ {period_income_total:,.2f} - Despesas: R$ {period_expense_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
     # 3. Compromissos futuros (a partir de amanhã)
     future_commitments = db.query(func.sum(Transaction.amount)).filter(
@@ -361,7 +519,7 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
             "saldo": round(m_inc - m_exp, 2)
         })
 
-    # 5. Distribuição de gastos por categoria
+    # 5. Distribuição de gastos por categoria (com lookups em memória)
     cat_query = db.query(
         Transaction.category_id,
         func.sum(Transaction.amount).label("total")
@@ -372,10 +530,11 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
         extract('year', Transaction.date) == sel_year
     ).group_by(Transaction.category_id).all()
 
+    user_cats_dash = {c.id: c for c in db.query(Category).filter(Category.user_id == user.id).all()}
     total_exp_all = sum(item.total for item in cat_query) or 1.0
     category_distribution = []
     for item in cat_query:
-        cat = db.query(Category).filter(Category.id == item.category_id).first()
+        cat = user_cats_dash.get(item.category_id)
         if cat:
             category_distribution.append({
                 "category_id": cat.id,
@@ -414,9 +573,16 @@ def get_dashboard_analytics(db: Session, user: User, month: int = None, year: in
         })
 
     return {
-        "selected_period": f"{MONTH_NAMES_PT.get(sel_month, '')}/{sel_year}",
+        "selected_period": f"{month_name_pt}/{sel_year}",
         "current_balance": round(total_current_balance, 2),
         "projected_balance": round(total_projected_balance, 2),
+        "projected_balance_date": horizon_formatted,
+        "projected_balance_label": horizon_label_global,
+        "has_reliable_projection": len(accounts) > 0,
+        "opening_balance": opening_balance,
+        "period_income_total": period_income_total,
+        "period_expense_total": period_expense_total,
+        "projection_details": details_fmt,
         "total_income_received": round(income_received, 2),
         "total_income_expected": round(income_expected, 2),
         "total_expense_paid": round(expense_paid, 2),

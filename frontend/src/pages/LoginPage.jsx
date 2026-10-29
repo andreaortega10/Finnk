@@ -13,6 +13,11 @@ export function LoginPage({ onSwitchToRegister }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  React.useEffect(() => {
+    // Pré-aquece o backend em segundo plano enquanto o usuário preenche a tela
+    api.auth.ping();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -143,11 +148,15 @@ export function LoginPage({ onSwitchToRegister }) {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || googleLoading}
             className="w-full py-3.5 rounded-2xl bg-[#D83A6F] hover:bg-[#C22A5E] text-white font-bold text-sm shadow-lg shadow-pink-200 transition-all flex items-center justify-center space-x-2 active:scale-98 disabled:opacity-70 cursor-pointer"
           >
-            <LogIn className="w-4 h-4" />
-            <span>{loading ? 'Entrando...' : 'Entrar no FINNK'}</span>
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
+            <span>{loading ? 'Entrando com segurança...' : 'Entrar no FINNK'}</span>
           </button>
         </form>
 

@@ -7,7 +7,6 @@ import {
   Database,
   ShieldAlert,
   Save,
-  Sparkles,
   Download,
   Trash2,
   CheckCircle2,
@@ -32,7 +31,6 @@ export function ConfiguracoesPage() {
 
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -94,19 +92,6 @@ export function ConfiguracoesPage() {
       setErrorMsg(err.message || 'Erro ao alterar senha.');
     } finally {
       setLoadingPassword(false);
-    }
-  };
-
-  const handleSeedDemo = async () => {
-    if (!window.confirm('Deseja carregar os dados de demonstração (contas, cartões, despesas, aluguel, smartphone parcelado da Mariana)?')) return;
-    setLoadingDemo(true);
-    try {
-      await api.auth.seedDemo();
-      setFeedbackMsg('Dados de demonstração carregados com sucesso! Acesse Início ou Dashboard para visualizar.');
-    } catch (err) {
-      setErrorMsg(err.message || 'Erro ao carregar dados demonstrativos.');
-    } finally {
-      setLoadingDemo(false);
     }
   };
 
@@ -267,46 +252,24 @@ export function ConfiguracoesPage() {
         </div>
       </div>
 
-      {/* 3. Demo Data & LGPD Options */}
+      {/* 3. Zona de Segurança & LGPD */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Demo Data Loader */}
-        <div className="pastel-card rounded-3xl p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2.5 mb-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              <h3 className="font-bold text-sm text-slate-800">Dados de Demonstração (Mock Mariana)</h3>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-              Carrega os dados dos protótipos de alta fidelidade: Contas (Corrente, Carteira), Cartões (Nubank, Elo), Compromissos (Aluguel, Internet, Netflix, Salário), Compra Parcelada e Orçamentos.
-            </p>
-          </div>
-
-          <button
-            onClick={handleSeedDemo}
-            disabled={loadingDemo}
-            className="w-full py-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-800 font-bold text-xs hover:bg-purple-100 transition-all flex items-center justify-center space-x-2"
-          >
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>{loadingDemo ? 'Carregando dados...' : 'Carregar Dados do Protótipo'}</span>
-          </button>
-        </div>
-
         {/* Reset Data */}
         <div className="pastel-card rounded-3xl p-6 flex flex-col justify-between border-orange-100 bg-orange-50/20">
           <div>
             <div className="flex items-center space-x-2.5 mb-2">
               <AlertCircle className="w-5 h-5 text-orange-600" />
-              <h3 className="font-bold text-sm text-orange-900">Resetar Dados</h3>
+              <h3 className="font-bold text-sm text-orange-900">Reset Geral de Dados</h3>
             </div>
             <p className="text-xs text-orange-700/80 leading-relaxed mb-4">
-              Apaga todas as suas contas, transações, cartões e registros, mas mantém sua conta e dados de acesso intactos.
+              <strong>Atenção:</strong> Esta opção apaga todos os lançamentos financeiros da sua conta, retornando-a ao estado inicial limpo.
             </p>
           </div>
 
           <button
             onClick={async () => {
-              if (window.confirm('Tem certeza? Isso apagará todos os dados financeiros. Sua conta será mantida.')) {
-                if (window.confirm('Essa ação é irreversível. Deseja mesmo continuar?')) {
+              if (window.confirm('ATENÇÃO: Isso apagará TODOS os seus dados financeiros. Deseja mesmo continuar?')) {
+                if (window.confirm('Essa ação é totalmente irreversível. Confirmar reset geral?')) {
                   try {
                     await api.user.resetData();
                     setFeedbackMsg('Todos os dados foram resetados com sucesso.');

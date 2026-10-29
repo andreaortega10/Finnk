@@ -359,6 +359,13 @@ class DashboardAnalytics(BaseModel):
     selected_period: str
     current_balance: float
     projected_balance: float
+    projected_balance_date: Optional[str] = None
+    projected_balance_label: Optional[str] = None
+    has_reliable_projection: Optional[bool] = True
+    opening_balance: Optional[float] = 0.0
+    period_income_total: Optional[float] = 0.0
+    period_expense_total: Optional[float] = 0.0
+    projection_details: Optional[str] = None
     total_income_received: float
     total_income_expected: float
     total_expense_paid: float

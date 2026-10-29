@@ -17,8 +17,14 @@ export async function request(endpoint, options = {}) {
     config.body = JSON.stringify(options.body);
   }
 
+  // Timeout preventivo de 25s para conexões lentas/mobile
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), options.timeout || 25000);
+  config.signal = controller.signal;
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    clearTimeout(timeoutId);
     
     if (response.status === 401) {
       // Se não for rota de login/registro, limpa sessão expirada
@@ -38,6 +44,10 @@ export async function request(endpoint, options = {}) {
 
     return data;
   } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Tempo limite esgotado. Verifique sua conexão ou tente novamente.');
+    }
     throw error;
   }
 }
@@ -45,6 +55,14 @@ export async function request(endpoint, options = {}) {
 export const api = {
   // Auth
   auth: {
+    ping: () => {
+      try {
+        const rootUrl = new URL(API_BASE_URL).origin;
+        return fetch(rootUrl, { method: 'GET', keepalive: true }).catch(() => null);
+      } catch {
+        return fetch(`${API_BASE_URL}/health`, { method: 'GET', keepalive: true }).catch(() => null);
+      }
+    },
     register: (body) => request('/auth/register', { method: 'POST', body }),
     login: (body) => request('/auth/login', { method: 'POST', body }),
     googleLogin: (body) => request('/auth/google', { method: 'POST', body }),
@@ -55,6 +73,7 @@ export const api = {
     changePassword: (body) => request('/auth/change-password', { method: 'POST', body }),
     seedDemo: () => request('/auth/seed-demo', { method: 'POST' }),
   },
+
 
   // Dashboard
   dashboard: {
@@ -180,6 +199,8 @@ export const api = {
     exportData: () => request('/user/export-data'),
     deleteAccount: () => request('/user/account', { method: 'DELETE' }),
     resetData: () => request('/user/reset-data', { method: 'POST' }),
+    removeDemoData: () => request('/user/remove-demo-data', { method: 'POST' }),
   },
 };
+
 

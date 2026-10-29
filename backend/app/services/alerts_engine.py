@@ -17,18 +17,20 @@ def generate_financial_alerts(db: Session, user_id: int):
         today = datetime.date.today()
         alert_days = user.alert_days_before or 3
 
-        # 1. Pendências próximas do vencimento (RN11: ex: daqui a 3 dias ou 1 dia)
+        # 1. Pendências próximas do vencimento (somente despesas com due_date informado)
         target_dates = [today + datetime.timedelta(days=d) for d in [alert_days, 1]]
         upcoming_pending = db.query(Transaction).filter(
             Transaction.user_id == user_id,
+            Transaction.type == "DESPESA",
             Transaction.status == "PENDENTE",
-            Transaction.date.in_(target_dates)
+            Transaction.due_date.isnot(None),
+            Transaction.due_date.in_(target_dates)
         ).all()
 
         for tx in upcoming_pending:
-            days_diff = (tx.date - today).days
+            days_diff = (tx.due_date - today).days
             title = f"Vencimento Próximo: {tx.title}"
-            msg = f"O compromisso '{tx.title}' no valor de R$ {tx.amount:.2f} vence em {days_diff} dia{'s' if days_diff > 1 else ''} ({tx.date.strftime('%d/%m/%Y')})."
+            msg = f"O compromisso '{tx.title}' no valor de R$ {tx.amount:.2f} vence em {days_diff} dia{'s' if days_diff > 1 else ''} ({tx.due_date.strftime('%d/%m/%Y')})."
             
             # Evita duplicar o mesmo alerta hoje
             exists = db.query(Alert).filter(
@@ -48,15 +50,17 @@ def generate_financial_alerts(db: Session, user_id: int):
                 )
                 db.add(new_alert)
 
-        # 2. Pendências vencidas e não pagas (RN12: dia seguinte e semanalmente)
+        # 2. Pendências vencidas e não pagas (somente se houver due_date e due_date < today)
         overdue_txs = db.query(Transaction).filter(
             Transaction.user_id == user_id,
+            Transaction.type == "DESPESA",
             Transaction.status.in_(["PENDENTE", "ATRASADA"]),
-            Transaction.date < today
+            Transaction.due_date.isnot(None),
+            Transaction.due_date < today
         ).all()
 
         for tx in overdue_txs:
-            days_overdue = (today - tx.date).days
+            days_overdue = (today - tx.due_date).days
             # Atualiza status para ATRASADA se ainda estava como PENDENTE
             if tx.status == "PENDENTE":
                 tx.status = "ATRASADA"
@@ -64,7 +68,7 @@ def generate_financial_alerts(db: Session, user_id: int):
             # Notificar no dia seguinte (days_overdue == 1) ou a cada 7 dias
             if days_overdue == 1 or (days_overdue % 7 == 0 and days_overdue > 0):
                 title = f"Compromisso Atrasado: {tx.title}"
-                msg = f"O compromisso '{tx.title}' no valor de R$ {tx.amount:.2f} venceu em {tx.date.strftime('%d/%m/%Y')} e está em atraso há {days_overdue} dia(s)."
+                msg = f"O compromisso '{tx.title}' no valor de R$ {tx.amount:.2f} venceu em {tx.due_date.strftime('%d/%m/%Y')} e está em atraso há {days_overdue} dia(s)."
                 
                 exists = db.query(Alert).filter(
                     Alert.user_id == user_id,
