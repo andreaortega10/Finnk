@@ -16,6 +16,7 @@ import { AlertasPage } from './pages/AlertasPage';
 import { HistoricoPage } from './pages/HistoricoPage';
 import { ConfiguracoesPage } from './pages/ConfiguracoesPage';
 import { HelpPage } from './pages/HelpPage';
+import { AIAssistantPage } from './pages/AIAssistantPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { api } from './services/api';
@@ -93,6 +94,8 @@ function MainLayout() {
         return <ConfiguracoesPage />;
       case 'ajuda':
         return <HelpPage />;
+      case 'assistente':
+        return <AIAssistantPage onNavigate={handleNavigate} />;
       default:
         return <HomePage onNavigate={(tab) => setActiveTab(tab)} />;
     }
@@ -112,6 +115,7 @@ function MainLayout() {
           onOpenDrawer={() => setIsDrawerOpen(true)}
           onOpenAlerts={() => handleNavigate('alertas', null)}
           onOpenSettings={() => handleNavigate('configuracoes', null)}
+          onOpenAssistant={() => handleNavigate('assistente', null)}
           unreadAlertsCount={unreadAlertsCount}
         />
 

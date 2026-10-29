@@ -10,7 +10,9 @@ import {
   Plus,
   ArrowDownLeft,
   Layers,
-  ChevronLeft
+  ChevronLeft,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { api } from '../services/api';
 import { CategoryDonutChart, getDistinctCategoryColor } from '../components/Charts/CategoryDonutChart';
@@ -198,6 +200,30 @@ export function HomePage({ onNavigate }) {
           <span className="text-[11px] text-slate-500 truncate block" title={summary?.next_due_item?.title}>
             {summary?.next_due_item?.title || 'Nenhum pendente'}
           </span>
+        </div>
+      </div>
+
+      {/* Banner de Assistência com Inteligência Artificial */}
+      <div 
+        onClick={() => onNavigate('assistente')}
+        className="bg-gradient-to-r from-[#FFF0F4] via-white to-pink-50 border border-pink-100 rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all active:scale-98 group"
+      >
+        <div className="flex items-center space-x-3.5 min-w-0">
+          <div className="w-11 h-11 rounded-2xl bg-[#D83A6F] text-white flex items-center justify-center shrink-0 shadow-md shadow-pink-200 group-hover:scale-105 transition-transform">
+            <Sparkles className="w-5 h-5 stroke-[2]" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-bold text-slate-800">Assistente Financeiro com IA</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-[#D83A6F]">Novo</span>
+            </div>
+            <p className="text-xs text-slate-500 truncate mt-0.5">
+              Tire dúvidas sobre seus gastos, compare períodos e consulte previsões em linguagem natural.
+            </p>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-full bg-white border border-pink-200 text-[#D83A6F] flex items-center justify-center shrink-0 shadow-2xs group-hover:translate-x-1 transition-transform">
+          <ArrowRight className="w-4 h-4" />
         </div>
       </div>
 

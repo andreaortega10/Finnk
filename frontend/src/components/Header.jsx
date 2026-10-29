@@ -1,8 +1,8 @@
 import React from 'react';
-import { Bell, Settings, Menu } from 'lucide-react';
+import { Bell, Settings, Menu, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export function Header({ onOpenAlerts, onOpenSettings, onOpenDrawer, unreadAlertsCount = 0 }) {
+export function Header({ onOpenAlerts, onOpenSettings, onOpenDrawer, onOpenAssistant, unreadAlertsCount = 0 }) {
   const { user } = useAuth();
 
   const getInitials = (name) => {
@@ -39,6 +39,14 @@ export function Header({ onOpenAlerts, onOpenSettings, onOpenDrawer, unreadAlert
 
       {/* Top Actions */}
       <div className="flex items-center space-x-2">
+        <button
+          onClick={onOpenAssistant}
+          className="relative p-2.5 rounded-full bg-gradient-to-tr from-pink-50 to-white border border-pink-200/80 text-[#D83A6F] hover:bg-pink-100/60 transition-all shadow-xs active:scale-95"
+          title="Assistente Finnk (IA)"
+        >
+          <Sparkles className="w-5 h-5 stroke-[2]" />
+        </button>
+
         <button
           onClick={onOpenAlerts}
           className="relative p-2.5 rounded-full bg-white border border-slate-100 text-slate-600 hover:text-[#D83A6F] hover:border-pink-200 transition-all shadow-xs active:scale-95"

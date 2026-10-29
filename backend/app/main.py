@@ -12,7 +12,8 @@ from .routers import (
     budgets_router,
     alerts_router,
     dashboard_router,
-    user_router
+    user_router,
+    ai_router
 )
 
 # Cria todas as tabelas no banco relacional
@@ -58,6 +59,7 @@ app.include_router(budgets_router.router)
 app.include_router(alerts_router.router)
 app.include_router(dashboard_router.router)
 app.include_router(user_router.router)
+app.include_router(ai_router.router)
 
 @app.get("/")
 def root():

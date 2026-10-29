@@ -16,7 +16,8 @@ import {
   Settings,
   LogOut,
   ShieldCheck,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +29,7 @@ export function Sidebar({ activeTab, setActiveTab }) {
       title: 'Principal',
       items: [
         { id: 'inicio', label: 'Início', icon: Home },
+        { id: 'assistente', label: 'Assistente IA', icon: Sparkles },
         { id: 'dashboard', label: 'Análise Geral', icon: BarChart3 },
         { id: 'compromissos', label: 'Despesas', icon: Calendar },
         { id: 'cartoes', label: 'Cartões & Faturas', icon: CreditCard },

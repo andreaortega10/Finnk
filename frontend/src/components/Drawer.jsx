@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Home, BarChart3, Calendar, CreditCard, ArrowLeftRight,
-  Clock, PieChart, Landmark, Tag, Bell, Settings, LogOut, X, HelpCircle
+  Clock, PieChart, Landmark, Tag, Bell, Settings, LogOut, X, HelpCircle, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,6 +13,7 @@ export function Drawer({ isOpen, onClose, activeTab, setActiveTab }) {
       title: 'Principal',
       items: [
         { id: 'inicio', label: 'Início', icon: Home },
+        { id: 'assistente', label: 'Assistente IA', icon: Sparkles },
         { id: 'dashboard', label: 'Análise Geral', icon: BarChart3 },
         { id: 'compromissos', label: 'Despesas', icon: Calendar },
         { id: 'transacoes', label: 'Transações', icon: ArrowLeftRight },

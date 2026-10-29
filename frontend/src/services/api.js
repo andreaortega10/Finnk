@@ -201,6 +201,23 @@ export const api = {
     resetData: () => request('/user/reset-data', { method: 'POST' }),
     removeDemoData: () => request('/user/remove-demo-data', { method: 'POST' }),
   },
+
+  // Assistência com Inteligência Artificial
+  ai: {
+    getStatus: () => request('/ai/status'),
+    getHistory: () => request('/ai/history'),
+    clearHistory: () => request('/ai/history', { method: 'DELETE' }),
+    chat: (message, periodMonth = null, periodYear = null, isDemo = false) =>
+      request('/ai/chat', {
+        method: 'POST',
+        body: {
+          message,
+          period_month: periodMonth,
+          period_year: periodYear,
+          is_demo: isDemo,
+        },
+      }),
+  },
 };
 
 

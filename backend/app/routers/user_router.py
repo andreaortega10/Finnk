@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import datetime
 from ..database import get_db
-from ..models import User, AuditLog, Transaction, Account, CreditCard, Category, Budget, RecurringRule, InstallmentPurchase, Alert
+from ..models import User, AuditLog, Transaction, Account, CreditCard, Category, Budget, RecurringRule, InstallmentPurchase, Alert, AIChatMessage
 from ..schemas import AuditLogOut
 from ..auth import get_current_user
 
@@ -124,9 +124,10 @@ def reset_data(
     from ..services.audit_engine import log_audit
 
     try:
-        # 1. Exclui alertas e orçamentos vinculados
+        # 1. Exclui alertas, orçamentos e histórico de chat da IA vinculados
         db.query(Alert).filter(Alert.user_id == current_user.id).delete(synchronize_session=False)
         db.query(Budget).filter(Budget.user_id == current_user.id).delete(synchronize_session=False)
+        db.query(AIChatMessage).filter(AIChatMessage.user_id == current_user.id).delete(synchronize_session=False)
         
         # 2. Exclui todas as transações (despesas, receitas, parcelas)
         db.query(Transaction).filter(Transaction.user_id == current_user.id).delete(synchronize_session=False)

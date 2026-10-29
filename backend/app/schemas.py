@@ -404,3 +404,34 @@ class AuditLogOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- AI Assistant Schemas ---
+class AIChatRequest(BaseModel):
+    message: str
+    period_month: Optional[int] = None
+    period_year: Optional[int] = None
+    is_demo: Optional[bool] = False
+
+class AIChatResponse(BaseModel):
+    reply: str
+    period_analyzed: str
+    is_demo: bool
+    provider: str
+    timestamp: datetime.datetime
+
+class AIChatMessageOut(BaseModel):
+    id: int
+    role: str
+    content: str
+    period_analyzed: Optional[str] = None
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+class AIStatusOut(BaseModel):
+    provider: str
+    model: str
+    is_configured: bool
+    is_demo: bool
+    free_tier: bool
