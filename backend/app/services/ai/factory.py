@@ -18,7 +18,7 @@ def get_ai_provider() -> BaseAIProvider:
         if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
             return GeminiAIProvider(
                 api_key=settings.GEMINI_API_KEY.strip(),
-                model_name=settings.GEMINI_MODEL or "gemini-2.5-flash",
+                model_name=settings.GEMINI_MODEL or "gemini-3.5-flash-lite",
                 temperature=settings.AI_TEMPERATURE,
                 max_output_tokens=settings.AI_MAX_OUTPUT_TOKENS
             )

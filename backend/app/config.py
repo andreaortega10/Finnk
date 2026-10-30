@@ -9,7 +9,7 @@ class Settings(BaseModel):
     
     # Configurações do Provedor de IA (Google Gemini API - Free Tier)
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "gemini")
     AI_MAX_OUTPUT_TOKENS: int = int(os.getenv("AI_MAX_OUTPUT_TOKENS", "800"))
     AI_TEMPERATURE: float = float(os.getenv("AI_TEMPERATURE", "0.3"))
