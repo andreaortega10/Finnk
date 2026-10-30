@@ -104,12 +104,23 @@ class AccountOut(BaseModel):
     color: str
     initial_balance: float
     current_balance: float = 0.0
+    projected_incomes: float = 0.0
+    projected_expenses: float = 0.0
+    projected_commitments_count: int = 0
     projected_balance: float = 0.0
     is_active: bool
     created_at: datetime.datetime
 
     class Config:
         from_attributes = True
+
+
+class AccountTransferCreate(BaseModel):
+    origin_account_id: int
+    destination_account_id: int
+    amount: float = Field(..., gt=0)
+    date: Optional[datetime.date] = None
+    description: Optional[str] = None
 
 # --- Credit Card ---
 class CreditCardCreate(BaseModel):

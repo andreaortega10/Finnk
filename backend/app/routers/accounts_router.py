@@ -1,40 +1,174 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+import datetime
 from ..database import get_db
-from ..models import Account, User, Transaction
-from ..schemas import AccountCreate, AccountUpdate, AccountOut
+from ..models import Account, User, Transaction, Category
+from ..schemas import AccountCreate, AccountUpdate, AccountOut, AccountTransferCreate
 from ..auth import get_current_user
-from ..services.financial_engine import calculate_account_balances
+from ..services.financial_engine import calculate_account_balances, get_accounts_projections
 from ..services.audit_engine import log_audit
 
 router = APIRouter(prefix="/api/accounts", tags=["Contas Financeiras"])
 
+
 @router.get("", response_model=List[AccountOut])
 def list_accounts(
+    month: Optional[int] = Query(None),
+    year: Optional[int] = Query(None),
+    horizon_days: Optional[int] = Query(None),
+    start_date: Optional[datetime.date] = Query(None),
+    end_date: Optional[datetime.date] = Query(None),
+    target_date: Optional[datetime.date] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    accounts = db.query(Account).filter(
+    proj_data = get_accounts_projections(
+        db=db,
+        user=current_user,
+        horizon_days=horizon_days,
+        start_date=start_date,
+        end_date=end_date,
+        target_date=target_date,
+        month=month,
+        year=year
+    )
+    return [AccountOut(**acc) for acc in proj_data["accounts"]]
+
+
+@router.get("/projections")
+def get_projections(
+    horizon_days: Optional[int] = Query(None, description="Projeção para 7, 30 ou 90 dias"),
+    start_date: Optional[datetime.date] = Query(None, description="Data inicial personalizada"),
+    end_date: Optional[datetime.date] = Query(None, description="Data final personalizada"),
+    target_date: Optional[datetime.date] = Query(None, description="Data específica de projeção"),
+    month: Optional[int] = Query(None, description="Mês de referência"),
+    year: Optional[int] = Query(None, description="Ano de referência"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return get_accounts_projections(
+        db=db,
+        user=current_user,
+        horizon_days=horizon_days,
+        start_date=start_date,
+        end_date=end_date,
+        target_date=target_date,
+        month=month,
+        year=year
+    )
+
+
+@router.post("/transfer")
+def transfer_between_accounts(
+    data: AccountTransferCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if data.origin_account_id == data.destination_account_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A conta de origem e a conta de destino devem ser diferentes."
+        )
+    if data.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O valor da transferência deve ser maior que zero."
+        )
+
+    origin = db.query(Account).filter(
+        Account.id == data.origin_account_id,
         Account.user_id == current_user.id,
         Account.is_active == True
-    ).all()
+    ).first()
+    destination = db.query(Account).filter(
+        Account.id == data.destination_account_id,
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).first()
 
-    result = []
-    for acc in accounts:
-        curr, proj = calculate_account_balances(db, acc)
-        result.append(AccountOut(
-            id=acc.id,
-            name=acc.name,
-            type=acc.type,
-            color=acc.color,
-            initial_balance=acc.initial_balance,
-            current_balance=curr,
-            projected_balance=proj,
-            is_active=acc.is_active,
-            created_at=acc.created_at
-        ))
-    return result
+    if not origin or not destination:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta de origem ou destino não encontrada."
+        )
+
+    tx_date = data.date or datetime.date.today()
+    today = datetime.date.today()
+
+    # Busca categorias padrão para vincular registro contábil sem afetar receitas/despesas consolidadas
+    cat_exp = db.query(Category).filter(
+        (Category.user_id == current_user.id) | (Category.is_system_default == True),
+        Category.type == "DESPESA"
+    ).first()
+    cat_inc = db.query(Category).filter(
+        (Category.user_id == current_user.id) | (Category.is_system_default == True),
+        Category.type == "RECEITA"
+    ).first()
+
+    out_status = "PAGA" if tx_date <= today else "PENDENTE"
+    in_status = "RECEBIDA" if tx_date <= today else "PENDENTE"
+    desc = (data.description or f"Transferência: {origin.name} -> {destination.name}").strip()
+
+    tx_out = Transaction(
+        user_id=current_user.id,
+        account_id=origin.id,
+        category_id=cat_exp.id if cat_exp else 1,
+        title=f"Transferência enviada para {destination.name}",
+        description=desc,
+        amount=round(data.amount, 2),
+        date=tx_date,
+        type="DESPESA",
+        status=out_status,
+        payment_method="TRANSFERENCIA",
+        is_adjustment=True
+    )
+    tx_in = Transaction(
+        user_id=current_user.id,
+        account_id=destination.id,
+        category_id=cat_inc.id if cat_inc else 1,
+        title=f"Transferência recebida de {origin.name}",
+        description=desc,
+        amount=round(data.amount, 2),
+        date=tx_date,
+        type="RECEITA",
+        status=in_status,
+        payment_method="TRANSFERENCIA",
+        is_adjustment=True
+    )
+
+    db.add_all([tx_out, tx_in])
+    db.commit()
+
+    log_audit(
+        db,
+        current_user.id,
+        "ACCOUNT_TRANSFER",
+        origin.id,
+        "TRANSFER",
+        {"origin": origin.name, "destination": destination.name, "amount": round(data.amount, 2)}
+    )
+
+    orig_curr, orig_proj = calculate_account_balances(db, origin, today.month, today.year)
+    dest_curr, dest_proj = calculate_account_balances(db, destination, today.month, today.year)
+
+    return {
+        "message": "Transferência realizada com sucesso.",
+        "amount": round(data.amount, 2),
+        "date": tx_date.isoformat(),
+        "origin_account": {
+            "id": origin.id,
+            "name": origin.name,
+            "current_balance": orig_curr,
+            "projected_balance": orig_proj
+        },
+        "destination_account": {
+            "id": destination.id,
+            "name": destination.name,
+            "current_balance": dest_curr,
+            "projected_balance": dest_proj
+        }
+    }
 
 
 @router.post("", response_model=AccountOut)
@@ -56,7 +190,8 @@ def create_account(
 
     log_audit(db, current_user.id, "ACCOUNT", account.id, "CREATE", {"name": account.name, "initial_balance": account.initial_balance})
 
-    curr, proj = calculate_account_balances(db, account)
+    today = datetime.date.today()
+    curr, proj = calculate_account_balances(db, account, today.month, today.year)
     return AccountOut(
         id=account.id,
         name=account.name,
@@ -101,7 +236,8 @@ def update_account(
 
     log_audit(db, current_user.id, "ACCOUNT", account.id, "UPDATE", {"name": account.name})
 
-    curr, proj = calculate_account_balances(db, account)
+    today = datetime.date.today()
+    curr, proj = calculate_account_balances(db, account, today.month, today.year)
     return AccountOut(
         id=account.id,
         name=account.name,
@@ -129,7 +265,6 @@ def delete_account(
     if not account:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conta financeira não encontrada.")
 
-    # Soft delete / inativa para preservar integridade
     account.is_active = False
     db.commit()
 

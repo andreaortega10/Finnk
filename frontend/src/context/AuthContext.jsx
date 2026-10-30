@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, clearApiCache } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -13,7 +13,6 @@ export function AuthProvider({ children }) {
     }
   });
   const [token, setToken] = useState(() => localStorage.getItem('finnk_token'));
-  // Não bloqueia a interface se já possuir dados válidos em cache
   const [loading, setLoading] = useState(() => {
     const saved = localStorage.getItem('finnk_user');
     const savedToken = localStorage.getItem('finnk_token');
@@ -27,12 +26,12 @@ export function AuthProvider({ children }) {
       if (savedToken) {
         try {
           const profile = await api.auth.getProfile();
-          if (isMounted) {
+          if (isMounted && profile) {
             setUser(profile);
             localStorage.setItem('finnk_user', JSON.stringify(profile));
           }
-        } catch (err) {
-          if (isMounted) logout();
+        } catch {
+          // Caso seja 401, o evento 'auth:unauthorized' dispara o logout automaticamente
         }
       }
       if (isMounted) setLoading(false);
@@ -49,6 +48,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
+    clearApiCache();
     const res = await api.auth.login({ email, password });
     localStorage.setItem('finnk_token', res.access_token);
     localStorage.setItem('finnk_user', JSON.stringify(res.user));
@@ -59,6 +59,7 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (name, email, password) => {
+    clearApiCache();
     const res = await api.auth.register({ name, email, password });
     localStorage.setItem('finnk_token', res.access_token);
     localStorage.setItem('finnk_user', JSON.stringify(res.user));
@@ -69,6 +70,7 @@ export function AuthProvider({ children }) {
   };
 
   const loginGoogle = async (googleUser) => {
+    clearApiCache();
     const res = await api.auth.googleLogin({
       id_token: googleUser.idToken,
       email: googleUser.email,
@@ -84,6 +86,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    clearApiCache();
     setToken(null);
     setUser(null);
     localStorage.removeItem('finnk_token');

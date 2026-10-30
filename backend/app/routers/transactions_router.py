@@ -10,16 +10,39 @@ from ..auth import get_current_user
 from ..services.audit_engine import log_audit
 from ..services.alerts_engine import generate_financial_alerts
 from ..services.recurring_engine import sync_all_active_recurring_rules
+from ..services.financial_engine import is_tx_overdue, calculate_card_metrics
 
 router = APIRouter(prefix="/api/transactions", tags=["Transações e Compromissos"])
 
-def format_transaction_out(t: Transaction, db: Session) -> TransactionOut:
-    cat = db.query(Category).filter(Category.id == t.category_id).first()
-    acc = db.query(Account).filter(Account.id == t.account_id).first() if t.account_id else None
-    crd = db.query(CreditCard).filter(CreditCard.id == t.credit_card_id).first() if t.credit_card_id else None
-    today = datetime.date.today()
+
+def format_transaction_out(
+    t: Transaction,
+    db: Session,
+    cats_map: dict = None,
+    accs_map: dict = None,
+    cards_map: dict = None,
+    today: datetime.date = None
+) -> TransactionOut:
+    if cats_map is not None:
+        cat = cats_map.get(t.category_id)
+    else:
+        cat = db.query(Category).filter(Category.id == t.category_id).first()
+
+    if accs_map is not None:
+        acc = accs_map.get(t.account_id) if t.account_id else None
+    else:
+        acc = db.query(Account).filter(Account.id == t.account_id).first() if t.account_id else None
+
+    if cards_map is not None:
+        crd = cards_map.get(t.credit_card_id) if t.credit_card_id else None
+    else:
+        crd = db.query(CreditCard).filter(CreditCard.id == t.credit_card_id).first() if t.credit_card_id else None
+
+    if today is None:
+        today = datetime.date.today()
+
     eff_status = t.status
-    if t.type == "DESPESA" and (t.status == "ATRASADA" or (t.status == "PENDENTE" and t.due_date is not None and t.due_date < today)):
+    if is_tx_overdue(t, today):
         eff_status = "ATRASADA"
 
     return TransactionOut(
@@ -69,10 +92,12 @@ def list_transactions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Sincroniza regras recorrentes ativas para garantir integridade
     sync_all_active_recurring_rules(db, current_user.id)
 
     query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
+
+    if not status_filter or status_filter.upper() != "CANCELADA":
+        query = query.filter(Transaction.status != "CANCELADA")
 
     if start_date:
         query = query.filter(Transaction.date >= start_date)
@@ -82,9 +107,9 @@ def list_transactions(
     if type:
         query = query.filter(Transaction.type == type.upper())
 
+    today = datetime.date.today()
     if status_filter:
         sf = status_filter.upper()
-        today = datetime.date.today()
         if sf in ["PAGA", "RECEBIDA"]:
             query = query.filter(Transaction.status.in_(["PAGA", "RECEBIDA"]))
         elif sf == "ATRASADA":
@@ -92,12 +117,12 @@ def list_transactions(
                 Transaction.type == "DESPESA",
                 or_(
                     Transaction.status == "ATRASADA",
-                    and_(Transaction.status == "PENDENTE", Transaction.due_date.isnot(None), Transaction.due_date < today)
+                    and_(Transaction.status.in_(["PENDENTE", "PREVISTA"]), Transaction.due_date.isnot(None), Transaction.due_date < today)
                 )
             )
-        elif sf == "PENDENTE":
+        elif sf in ["PENDENTE", "PREVISTA"]:
             query = query.filter(
-                Transaction.status == "PENDENTE",
+                Transaction.status.in_(["PENDENTE", "PREVISTA"]),
                 or_(
                     Transaction.type == "RECEITA",
                     Transaction.due_date.is_(None),
@@ -127,11 +152,23 @@ def list_transactions(
             )
         )
     if is_compromisso is True:
-        # Compromissos são despesas a pagar ou a vencer
         query = query.filter(Transaction.type == "DESPESA")
 
     txs = query.order_by(Transaction.date.desc(), Transaction.created_at.desc(), Transaction.id.desc()).all()
-    return [format_transaction_out(t, db) for t in txs]
+    if not txs:
+        return []
+
+    # Pre-fetch em memória para eliminar N+1 queries (3 queries fixas em vez de 3*N)
+    cats_map = {
+        c.id: c
+        for c in db.query(Category).filter(
+            or_(Category.user_id == current_user.id, Category.is_system_default == True)
+        ).all()
+    }
+    accs_map = {a.id: a for a in db.query(Account).filter(Account.user_id == current_user.id).all()}
+    cards_map = {c.id: c for c in db.query(CreditCard).filter(CreditCard.user_id == current_user.id).all()}
+
+    return [format_transaction_out(t, db, cats_map, accs_map, cards_map, today) for t in txs]
 
 
 @router.post("", response_model=TransactionOut)
@@ -140,22 +177,19 @@ def create_transaction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # RN02: Valor não pode ser zero
     if tx_data.amount <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="O valor da transação não pode ser igual ou menor que zero (RN02)."
         )
 
-    # RN01: Deve pertencer a uma categoria e a uma conta financeira ou cartão
     category = db.query(Category).filter(
         Category.id == tx_data.category_id,
-        (Category.user_id == current_user.id) | (Category.user_id.is_(None))
+        or_(Category.user_id == current_user.id, Category.user_id.is_(None), Category.is_system_default == True)
     ).first()
     if not category:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Categoria obrigatória e válida não informada (RN01).")
 
-    # Validação de limite no cartão se for compra em cartão de crédito (Correção 8)
     if tx_data.credit_card_id and tx_data.type.upper() == "DESPESA":
         card = db.query(CreditCard).filter(
             CreditCard.id == tx_data.credit_card_id,
@@ -163,31 +197,27 @@ def create_transaction(
         ).first()
         if not card:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cartão de crédito não encontrado.")
-        from ..services.financial_engine import calculate_card_metrics
         available_limit, _ = calculate_card_metrics(db, card)
         if tx_data.amount > available_limit:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Limite insuficiente no cartão '{card.name}'. Limite disponível: R$ {available_limit:.2f}, valor da compra: R$ {tx_data.amount:.2f}."
             )
-        # Compras com cartão de crédito não debitam imediatamente da conta bancária
         tx_data.account_id = None
 
     if not tx_data.account_id and not tx_data.credit_card_id:
-        # Se não informado, associa à primeira conta ativa do usuário
         user_acc = db.query(Account).filter(Account.user_id == current_user.id, Account.is_active == True).first()
         if user_acc:
             tx_data.account_id = user_acc.id
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Conta financeira ou cartão obrigatório (RN01).")
 
-    # RN03: Transações futuras entram como PENDENTE; atuais/passadas podem ser pagas
     today = datetime.date.today()
     assigned_status = tx_data.status
     if tx_data.date > today:
-        assigned_status = "PENDENTE"
+        if not assigned_status or assigned_status.upper() in ["PAGA", "RECEBIDA"]:
+            assigned_status = "PENDENTE"
     elif not assigned_status:
-        # Se na data de hoje ou passada e não especificado
         if tx_data.type.upper() == "RECEITA":
             assigned_status = "RECEBIDA"
         else:
@@ -249,7 +279,6 @@ def update_transaction(
     if not tx:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transação não encontrada.")
 
-    # RN08: Uma parcela já paga não pode ter valor ou data alterados diretamente
     if tx.is_installment and tx.status in ["PAGA", "RECEBIDA"]:
         if (tx_data.amount is not None and tx_data.amount != tx.amount) or (tx_data.date is not None and tx_data.date != tx.date):
             raise HTTPException(
@@ -307,6 +336,7 @@ def update_transaction_status(
     if not tx:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transação não encontrada.")
 
+    # Confirmação / alteração de status in-place (nunca duplica registros)
     new_status = status_data.status.upper()
     tx.status = new_status
     db.commit()
@@ -332,14 +362,13 @@ def delete_transaction(
     if not tx:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transação não encontrada.")
 
-    # Se for parcela, alertar sobre parcelamento
-    if tx.is_installment:
-        pass  # O usuário pode excluir a parcela avulsa ou pelo endpoint de parcelamentos
-
-    db.delete(tx)
-    db.commit()
+    # Se for ocorrência gerada por recorrência ativa, marca como CANCELADA para não ser recriada no sync
+    if tx.is_recurring and tx.recurring_id is not None:
+        tx.status = "CANCELADA"
+        db.commit()
+    else:
+        db.delete(tx)
+        db.commit()
 
     log_audit(db, current_user.id, "TRANSACTION", tx_id, "DELETE", {"title": tx.title, "amount": tx.amount})
     return {"message": "Transação excluída com sucesso."}
-
-

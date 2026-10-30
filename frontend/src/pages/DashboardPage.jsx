@@ -194,7 +194,7 @@ export function DashboardPage({ onNavigate }) {
             {formatCurrency(analytics?.total_expense_paid)}
           </div>
           <div className="text-[11px] text-rose-500 font-semibold mt-1">
-            + {formatCurrency(analytics?.total_expense_pending)} a pagar
+            + {formatCurrency((analytics?.total_expense_pending || 0) + (analytics?.total_overdue || 0))} a pagar
           </div>
         </div>
       </div>
@@ -219,7 +219,7 @@ export function DashboardPage({ onNavigate }) {
             <p className="text-xs text-slate-400 mb-4">Distribuição percentual</p>
             <CategoryDonutChart
               data={analytics?.category_distribution}
-              totalAmount={analytics?.total_expense_paid + analytics?.total_expense_pending}
+              totalAmount={analytics?.period_expense_total ?? ((analytics?.total_expense_paid || 0) + (analytics?.total_expense_pending || 0) + (analytics?.total_overdue || 0))}
             />
           </div>
           <div className="space-y-2 mt-4 max-h-36 overflow-y-auto pr-1">

@@ -1,31 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
 from typing import List
 import datetime
 from ..database import get_db
-from ..models import Budget, User, Category, Transaction
-from ..schemas import BudgetCreate, BudgetUpdate, BudgetOut
+from ..models import Budget, User, Category
+from ..schemas import BudgetCreate, BudgetOut
 from ..auth import get_current_user
+from ..services.financial_engine import calculate_budgets_metrics
 from ..services.audit_engine import log_audit
 
 router = APIRouter(prefix="/api/budgets", tags=["Orçamentos"])
 
+
 def format_budget_out(b: Budget, db: Session) -> BudgetOut:
+    metrics = calculate_budgets_metrics(db, b.user_id, b.month, b.year)
+    item = next((m for m in metrics if m["id"] == b.id), None)
+    if item:
+        return BudgetOut(**item)
+
     cat = db.query(Category).filter(Category.id == b.category_id).first()
-    
-    # Soma de despesas reais na categoria no mês/ano do orçamento
-    spent = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == b.user_id,
-        Transaction.category_id == b.category_id,
-        Transaction.type == "DESPESA",
-        extract('month', Transaction.date) == b.month,
-        extract('year', Transaction.date) == b.year
-    ).scalar() or 0.0
-
-    remaining = max(0.0, round(b.monthly_limit - spent, 2))
-    pct = round((spent / b.monthly_limit) * 100, 1) if b.monthly_limit > 0 else 0.0
-
     return BudgetOut(
         id=b.id,
         category_id=b.category_id,
@@ -35,11 +28,11 @@ def format_budget_out(b: Budget, db: Session) -> BudgetOut:
         month=b.month,
         year=b.year,
         monthly_limit=b.monthly_limit,
-        spent_amount=round(spent, 2),
-        remaining_amount=remaining,
-        percentage_used=pct,
-        is_warning=(pct >= 80.0 and pct < 100.0),
-        is_exceeded=(pct >= 100.0),
+        spent_amount=0.0,
+        remaining_amount=b.monthly_limit,
+        percentage_used=0.0,
+        is_warning=False,
+        is_exceeded=False,
         created_at=b.created_at
     )
 
@@ -55,13 +48,8 @@ def list_budgets(
     sel_month = month or today.month
     sel_year = year or today.year
 
-    budgets = db.query(Budget).filter(
-        Budget.user_id == current_user.id,
-        Budget.month == sel_month,
-        Budget.year == sel_year
-    ).all()
-
-    return [format_budget_out(b, db) for b in budgets]
+    items = calculate_budgets_metrics(db, current_user.id, sel_month, sel_year)
+    return [BudgetOut(**item) for item in items]
 
 
 @router.post("", response_model=BudgetOut)
@@ -70,7 +58,6 @@ def set_budget(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verifica se a categoria existe
     cat = db.query(Category).filter(
         Category.id == data.category_id,
         (Category.user_id == current_user.id) | (Category.is_system_default == True)
@@ -78,7 +65,6 @@ def set_budget(
     if not cat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada.")
 
-    # Se já existir orçamento para categoria/mês/ano, atualiza
     existing = db.query(Budget).filter(
         Budget.user_id == current_user.id,
         Budget.category_id == data.category_id,

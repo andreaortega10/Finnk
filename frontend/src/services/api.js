@@ -1,7 +1,37 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://finnk.onrender.com/api';
 
+// Cache inteligente em memória com invalidação imediata em mutações (POST, PUT, PATCH, DELETE)
+const responseCache = new Map();
+const inflightRequests = new Map();
+const CACHE_TTL_MS = 30000; // 30 segundos de validade para navegação instantânea entre abas
+
+export function clearApiCache() {
+  responseCache.clear();
+  inflightRequests.clear();
+}
+
 export async function request(endpoint, options = {}) {
   const token = localStorage.getItem('finnk_token');
+  const method = (options.method || 'GET').toUpperCase();
+  const isGet = method === 'GET';
+  const cacheKey = `${token || 'anon'}:${endpoint}`;
+
+  // Para mutações, invalida o cache imediatamente garantindo consistência em todas as telas
+  if (!isGet && !endpoint.includes('/ai/chat') && !endpoint.includes('/auth/login')) {
+    clearApiCache();
+  }
+
+  // Reutiliza cache válido em requisições GET de leitura
+  if (isGet && !options.skipCache) {
+    const cached = responseCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+    if (inflightRequests.has(cacheKey)) {
+      return inflightRequests.get(cacheKey);
+    }
+  }
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -10,6 +40,7 @@ export async function request(endpoint, options = {}) {
 
   const config = {
     ...options,
+    method,
     headers,
   };
 
@@ -17,42 +48,59 @@ export async function request(endpoint, options = {}) {
     config.body = JSON.stringify(options.body);
   }
 
-  // Timeout preventivo de 25s para conexões lentas/mobile
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), options.timeout || 25000);
   config.signal = controller.signal;
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    clearTimeout(timeoutId);
-    
-    if (response.status === 401) {
-      // Se não for rota de login/registro, limpa sessão expirada
-      if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
-        localStorage.removeItem('finnk_token');
-        localStorage.removeItem('finnk_user');
-        window.dispatchEvent(new Event('auth:unauthorized'));
+  const fetchPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      clearTimeout(timeoutId);
+
+      if (response.status === 401) {
+        if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+          clearApiCache();
+          localStorage.removeItem('finnk_token');
+          localStorage.removeItem('finnk_user');
+          window.dispatchEvent(new Event('auth:unauthorized'));
+        }
+      }
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMsg = (data && data.detail) || (data && data.message) || 'Ocorreu um erro ao processar sua solicitação.';
+        throw new Error(errorMsg);
+      }
+
+      if (isGet) {
+        responseCache.set(cacheKey, { data, timestamp: Date.now() });
+      }
+
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Tempo limite esgotado. Verifique sua conexão ou tente novamente.');
+      }
+      throw error;
+    } finally {
+      if (isGet) {
+        inflightRequests.delete(cacheKey);
       }
     }
+  })();
 
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const errorMsg = (data && data.detail) || (data && data.message) || 'Ocorreu um erro ao processar sua solicitação.';
-      throw new Error(errorMsg);
-    }
-
-    return data;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Tempo limite esgotado. Verifique sua conexão ou tente novamente.');
-    }
-    throw error;
+  if (isGet) {
+    inflightRequests.set(cacheKey, fetchPromise);
   }
+
+  return fetchPromise;
 }
 
 export const api = {
+  clearCache: clearApiCache,
+
   // Auth
   auth: {
     ping: () => {
@@ -74,7 +122,6 @@ export const api = {
     seedDemo: () => request('/auth/seed-demo', { method: 'POST' }),
   },
 
-
   // Dashboard
   dashboard: {
     getHomeSummary: (month, year) => {
@@ -95,7 +142,23 @@ export const api = {
 
   // Contas
   accounts: {
-    list: () => request('/accounts'),
+    list: (paramsObj = {}) => {
+      const params = new URLSearchParams();
+      Object.entries(paramsObj).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') params.append(k, v);
+      });
+      const q = params.toString() ? `?${params.toString()}` : '';
+      return request(`/accounts${q}`);
+    },
+    getProjections: (paramsObj = {}) => {
+      const params = new URLSearchParams();
+      Object.entries(paramsObj).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') params.append(k, v);
+      });
+      const q = params.toString() ? `?${params.toString()}` : '';
+      return request(`/accounts/projections${q}`);
+    },
+    transfer: (body) => request('/accounts/transfer', { method: 'POST', body }),
     create: (body) => request('/accounts', { method: 'POST', body }),
     update: (id, body) => request(`/accounts/${id}`, { method: 'PUT', body }),
     delete: (id) => request(`/accounts/${id}`, { method: 'DELETE' }),
@@ -220,5 +283,3 @@ export const api = {
       }),
   },
 };
-
-
