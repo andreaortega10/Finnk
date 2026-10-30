@@ -15,33 +15,34 @@ class GeminiAIProvider(BaseAIProvider):
     def __init__(
         self,
         api_key: str,
-        model_name: str = "gemini-2.5-flash",
+        model_name: str = "gemini-2.5-flash-lite",
         temperature: float = 0.3,
         max_output_tokens: int = 800,
-        timeout_seconds: float = 15.0
+        timeout_seconds: float = 22.0
     ):
         self.api_key = (api_key or "").strip()
         # Normaliza o nome do modelo removendo prefixos redundantes
-        raw_model = (model_name or "gemini-2.5-flash").strip()
+        raw_model = (model_name or "gemini-2.5-flash-lite").strip()
         cleaned = raw_model.replace("models/", "")
-        # Mapeia versões antigas/retiradas para o modelo atual e estável
+        # Mapeia versões antigas/retiradas para o modelo ultra-rápido suportado
         if cleaned in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.0-pro"]:
-            cleaned = "gemini-2.5-flash"
+            cleaned = "gemini-2.5-flash-lite"
         self.model_name = cleaned
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.timeout_seconds = timeout_seconds
 
-    def _call_gemini_api(self, model: str, payload: dict) -> Tuple[Optional[dict], int, str]:
+    def _call_gemini_api(self, model: str, payload: dict, timeout: float = None) -> Tuple[Optional[dict], int, str]:
         """Executa a chamada HTTP para o endpoint da Google Generative Language API."""
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.api_key}"
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": self.api_key
         }
-        
+        eff_timeout = timeout or self.timeout_seconds
+
         try:
-            with httpx.Client(timeout=self.timeout_seconds) as client:
+            with httpx.Client(timeout=eff_timeout) as client:
                 response = client.post(endpoint, json=payload, headers=headers)
                 status_code = response.status_code
                 text = response.text
@@ -51,17 +52,11 @@ class GeminiAIProvider(BaseAIProvider):
                     data = None
                 return data, status_code, text
         except httpx.TimeoutException:
-            logger.error("Timeout na comunicação com a API do Gemini (>15s)")
-            raise HTTPException(
-                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="Tempo limite excedido na comunicação com o Gemini. Aguarde alguns instantes e tente novamente."
-            )
+            logger.warning(f"Timeout na comunicação com a API do Gemini ({eff_timeout}s) no modelo {model}")
+            return None, 408, f"Timeout na comunicação com o Gemini ({eff_timeout}s)"
         except Exception as e:
-            logger.error(f"Exceção de rede ao conectar ao Gemini: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Falha de conexão com o serviço Gemini: {str(e)}"
-            )
+            logger.error(f"Exceção de rede ao conectar ao Gemini ({model}): {str(e)}")
+            return None, 503, str(e)
 
     def generate_reply(
         self,
@@ -102,68 +97,75 @@ class GeminiAIProvider(BaseAIProvider):
             }
         }
 
-        # Primeira tentativa com o modelo configurado
-        data, status_code, raw_text = self._call_gemini_api(self.model_name, payload)
+        # Sequência de modelos prioritários para resiliência: modelo configurado primeiro, depois modelos flash velozes
+        models_to_try = [self.model_name]
+        for candidate in ["gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-flash"]:
+            if candidate not in models_to_try:
+                models_to_try.append(candidate)
+
+        last_status = 503
+        last_error = ""
         active_model = self.model_name
 
-        # Se 404 (modelo não encontrado), tenta fallback dinâmico entre modelos flash suportados
-        if status_code == 404:
-            fallback_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
-            for fb_model in fallback_models:
-                if fb_model != active_model:
-                    logger.warning(f"Modelo {active_model} retornou 404. Tentando modelo alternativo: {fb_model}")
-                    data, status_code, raw_text = self._call_gemini_api(fb_model, payload)
-                    if status_code == 200:
-                        active_model = fb_model
-                        break
+        for model_cand in models_to_try:
+            logger.info(f"Tentando geração com o modelo Gemini: {model_cand}")
+            data, status_code, raw_text = self._call_gemini_api(model_cand, payload)
+            last_status = status_code
+            active_model = model_cand
 
-        if status_code == 200 and data:
-            candidates = data.get("candidates", [])
-            if not candidates:
+            if status_code == 200 and data:
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    return (
+                        "Não foi possível obter uma resposta detalhada no momento. Por favor, tente reformular sua pergunta.",
+                        f"gemini/{active_model}"
+                    )
+                content = candidates[0].get("content", {})
+                parts = content.get("parts", [])
+                if parts and "text" in parts[0]:
+                    return (parts[0]["text"].strip(), f"gemini/{active_model}")
                 return (
-                    "Não foi possível obter uma resposta detalhada no momento. Por favor, tente reformular sua pergunta.",
+                    "O assistente analisou seus dados financeiros com sucesso. Como posso ajudar com outra dúvida?",
                     f"gemini/{active_model}"
                 )
-            content = candidates[0].get("content", {})
-            parts = content.get("parts", [])
-            if parts and "text" in parts[0]:
-                return (parts[0]["text"].strip(), f"gemini/{active_model}")
-            return (
-                "O assistente analisou seus dados financeiros com sucesso. Como posso ajudar com outra dúvida?",
-                f"gemini/{active_model}"
-            )
 
-        # Extrai mensagem de erro da resposta do Google para diagnóstico
-        error_msg = ""
-        if data and isinstance(data, dict):
-            error_msg = data.get("error", {}).get("message", "")
-        if not error_msg:
-            error_msg = raw_text[:200]
+            # Extrai mensagem de erro para logs e diagnóstico
+            if data and isinstance(data, dict):
+                last_error = data.get("error", {}).get("message", "")
+            if not last_error:
+                last_error = raw_text[:200]
 
-        logger.error(f"Gemini API retornou HTTP {status_code} para o modelo {self.model_name}: {error_msg}")
+            logger.warning(f"Modelo {model_cand} falhou com status {status_code}: {last_error}")
 
-        if status_code == 429:
+            # Se for erro de autenticação (401/403) ou cota global (429), não adianta tentar outro modelo
+            if status_code in [401, 403, 429]:
+                break
+
+        # Se nenhum modelo funcionou
+        logger.error(f"Falha em todos os modelos Gemini testados. Último status: {last_status}, erro: {last_error}")
+
+        if last_status == 429:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Cota gratuita da API Gemini atingida: {error_msg}. Aguarde um instante e tente novamente."
+                detail=f"Cota gratuita da API Gemini atingida: {last_error}. Aguarde um instante e tente novamente."
             )
-        elif status_code in [401, 403]:
+        elif last_status in [401, 403]:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"A credencial GEMINI_API_KEY no servidor é inválida ou não autorizada: {error_msg}"
+                detail=f"A credencial GEMINI_API_KEY no servidor é inválida ou não autorizada: {last_error}"
             )
-        elif status_code == 400:
+        elif last_status == 408:
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=f"Tempo limite excedido na comunicação com a API do Gemini. Aguarde alguns instantes e tente novamente."
+            )
+        elif last_status == 400:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Requisição inválida para o Gemini: {error_msg}"
-            )
-        elif status_code == 404:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Modelo Gemini não encontrado ({self.model_name}): {error_msg}"
+                detail=f"Requisição inválida para o Gemini: {last_error}"
             )
         else:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"O serviço de IA retornou erro HTTP {status_code}: {error_msg}"
+                detail=f"O serviço Gemini retornou erro HTTP {last_status}: {last_error}"
             )

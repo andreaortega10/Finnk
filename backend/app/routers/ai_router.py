@@ -53,7 +53,7 @@ def get_ai_diagnostics(
     # Testa consulta da lista de modelos na API do Google
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models?key={clean_key}"
-        with httpx.Client(timeout=8.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             resp = client.get(url, headers={"x-goog-api-key": clean_key})
             diag["google_api_test"]["models_status_code"] = resp.status_code
             if resp.status_code == 200:
@@ -66,6 +66,30 @@ def get_ai_diagnostics(
                 diag["google_api_test"]["error_body"] = resp.text[:400]
     except Exception as e:
         diag["google_api_test"]["exception"] = str(e)
+
+    # Testa velocidade de geração em candidatos flash
+    test_models = ["gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-flash"]
+    diag["model_benchmarks"] = {}
+    for mod in test_models:
+        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={clean_key}"
+        test_payload = {
+            "contents": [{"role": "user", "parts": [{"text": "Responda apenas: 'Finnk OK'"}]}],
+            "generationConfig": {"maxOutputTokens": 10, "temperature": 0.1}
+        }
+        import time
+        t0 = time.time()
+        try:
+            with httpx.Client(timeout=25.0) as client:
+                g_resp = client.post(gen_url, json=test_payload, headers={"x-goog-api-key": clean_key})
+                elapsed_ms = int((time.time() - t0) * 1000)
+                if g_resp.status_code == 200:
+                    cand = g_resp.json().get("candidates", [])
+                    txt = cand[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip() if cand else ""
+                    diag["model_benchmarks"][mod] = {"status": 200, "elapsed_ms": elapsed_ms, "reply": txt}
+                else:
+                    diag["model_benchmarks"][mod] = {"status": g_resp.status_code, "elapsed_ms": elapsed_ms, "error": g_resp.text[:150]}
+        except Exception as ex:
+            diag["model_benchmarks"][mod] = {"error": str(ex), "elapsed_ms": int((time.time() - t0) * 1000)}
 
     return diag
 

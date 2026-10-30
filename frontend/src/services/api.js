@@ -210,6 +210,7 @@ export const api = {
     chat: (message, periodMonth = null, periodYear = null, isDemo = false) =>
       request('/ai/chat', {
         method: 'POST',
+        timeout: 35000,
         body: {
           message,
           period_month: periodMonth,
