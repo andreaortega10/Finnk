@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic[email]
+bcrypt
+python-jose
+python-multipart
+psycopg2-binary
+psycopg[binary]
+python-dateutil
+httpx
