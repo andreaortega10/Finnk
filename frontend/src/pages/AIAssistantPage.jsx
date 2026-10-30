@@ -14,6 +14,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { api } from '../services/api';
+import ReactMarkdown from 'react-markdown';
 
 export function AIAssistantPage({ onNavigate }) {
   const [messages, setMessages] = useState([]);
@@ -245,16 +246,47 @@ export function AIAssistantPage({ onNavigate }) {
                 )}
 
                 <div
-                  className={`max-w-[85%] sm:max-w-xl rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-2xs ${
+                  className={`max-w-[85%] sm:max-w-xl rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-2xs break-words ${
                     isUser
-                      ? 'bg-[#D83A6F] text-white rounded-tr-xs'
-                      : 'bg-white border border-slate-100 text-slate-800 rounded-tl-xs whitespace-pre-wrap'
+                      ? 'bg-[#D83A6F] text-white rounded-tr-xs whitespace-pre-wrap'
+                      : 'bg-white border border-slate-100 text-slate-800 rounded-tl-xs'
                   }`}
                 >
-                  {m.content}
+                  {isUser ? (
+                    m.content
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                        strong: ({ children }) => <strong className="font-bold text-slate-900">{children}</strong>,
+                        em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
+                        ul: ({ children }) => (
+                          <ul className="my-2 space-y-1.5 list-disc pl-4 marker:text-[#D83A6F]">
+                            {children}
+                          </ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="my-2 space-y-1.5 list-decimal pl-4 marker:text-[#D83A6F] marker:font-bold">
+                            {children}
+                          </ol>
+                        ),
+                        li: ({ children }) => <li className="leading-relaxed pl-1">{children}</li>,
+                        h1: ({ children }) => <h1 className="text-base font-black text-slate-900 mt-2.5 mb-1">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 mt-2 mb-1">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-xs font-bold text-slate-900 mt-1.5 mb-0.5">{children}</h3>,
+                        code: ({ children }) => (
+                          <code className="bg-pink-50 text-[#D83A6F] px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">
+                            {children}
+                          </code>
+                        ),
+                      }}
+                    >
+                      {m.content}
+                    </ReactMarkdown>
+                  )}
 
                   {m.period_analyzed && !isUser && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
                       <span>Período: {m.period_analyzed}</span>
                       <span>Fonte: Cálculos oficiais Finnk</span>
                     </div>
