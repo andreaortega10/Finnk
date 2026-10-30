@@ -105,8 +105,8 @@ DIRETRIZES FUNDAMENTAIS:
 Período Analisado: {period_label}
 Saldo Atual (Real): {format_currency_br(analytics.get('current_balance'))}
 Saldo Projetado ao Final do Período: {format_currency_br(analytics.get('projected_balance'))}
-Total de Receitas no Período: {format_currency_br(analytics.get('period_income_total'))} (Recebidas: {format_currency_br(analytics.get('income_received'))} | Previstas: {format_currency_br(analytics.get('income_expected'))})
-Total de Despesas no Período: {format_currency_br(analytics.get('period_expense_total'))} (Pagas: {format_currency_br(analytics.get('expense_paid'))} | Pendentes: {format_currency_br(analytics.get('expense_pending'))} | Atrasadas: {format_currency_br(analytics.get('overdue_amount'))})
+Total de Receitas no Período: {format_currency_br(analytics.get('period_income_total'))} (Recebidas: {format_currency_br(analytics.get('total_income_received') if analytics.get('total_income_received') is not None else analytics.get('income_received'))} | Previstas: {format_currency_br(analytics.get('total_income_expected') if analytics.get('total_income_expected') is not None else analytics.get('income_expected'))})
+Total de Despesas no Período: {format_currency_br(analytics.get('period_expense_total'))} (Pagas: {format_currency_br(analytics.get('total_expense_paid') if analytics.get('total_expense_paid') is not None else analytics.get('expense_paid'))} | Pendentes: {format_currency_br(analytics.get('total_expense_pending') if analytics.get('total_expense_pending') is not None else analytics.get('expense_pending'))} | Atrasadas: {format_currency_br(analytics.get('total_overdue') if analytics.get('total_overdue') is not None else analytics.get('overdue_amount'))})
 
 Comparativo com Período Anterior ({prev_period_label}):
 - Despesas no Período Anterior: {format_currency_br(prev_exp)}
