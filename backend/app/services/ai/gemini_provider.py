@@ -15,15 +15,19 @@ class GeminiAIProvider(BaseAIProvider):
     def __init__(
         self,
         api_key: str,
-        model_name: str = "gemini-1.5-flash",
+        model_name: str = "gemini-2.5-flash",
         temperature: float = 0.3,
         max_output_tokens: int = 800,
         timeout_seconds: float = 15.0
     ):
         self.api_key = (api_key or "").strip()
         # Normaliza o nome do modelo removendo prefixos redundantes
-        raw_model = (model_name or "gemini-1.5-flash").strip()
-        self.model_name = raw_model.replace("models/", "")
+        raw_model = (model_name or "gemini-2.5-flash").strip()
+        cleaned = raw_model.replace("models/", "")
+        # Mapeia versões antigas/retiradas para o modelo atual e estável
+        if cleaned in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.0-pro"]:
+            cleaned = "gemini-2.5-flash"
+        self.model_name = cleaned
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.timeout_seconds = timeout_seconds
@@ -102,12 +106,12 @@ class GeminiAIProvider(BaseAIProvider):
         data, status_code, raw_text = self._call_gemini_api(self.model_name, payload)
         active_model = self.model_name
 
-        # Se 404 (modelo não encontrado), tenta fallback para gemini-2.0-flash ou gemini-1.5-flash-latest
+        # Se 404 (modelo não encontrado), tenta fallback dinâmico entre modelos flash suportados
         if status_code == 404:
-            fallback_models = ["gemini-2.0-flash", "gemini-1.5-flash-latest"]
+            fallback_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
             for fb_model in fallback_models:
-                if fb_model != self.model_name:
-                    logger.warning(f"Modelo {self.model_name} retornou 404. Tentando modelo alternativo: {fb_model}")
+                if fb_model != active_model:
+                    logger.warning(f"Modelo {active_model} retornou 404. Tentando modelo alternativo: {fb_model}")
                     data, status_code, raw_text = self._call_gemini_api(fb_model, payload)
                     if status_code == 200:
                         active_model = fb_model
