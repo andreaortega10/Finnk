@@ -15,18 +15,18 @@ class GeminiAIProvider(BaseAIProvider):
     def __init__(
         self,
         api_key: str,
-        model_name: str = "gemini-2.5-flash-lite",
+        model_name: str = "gemini-3.5-flash",
         temperature: float = 0.3,
         max_output_tokens: int = 800,
         timeout_seconds: float = 22.0
     ):
         self.api_key = (api_key or "").strip()
         # Normaliza o nome do modelo removendo prefixos redundantes
-        raw_model = (model_name or "gemini-2.5-flash-lite").strip()
+        raw_model = (model_name or "gemini-3.5-flash").strip()
         cleaned = raw_model.replace("models/", "")
-        # Mapeia versões antigas/retiradas para o modelo ultra-rápido suportado
-        if cleaned in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.0-pro"]:
-            cleaned = "gemini-2.5-flash-lite"
+        # Mapeia versões antigas/retiradas para a geração 3.x suportada
+        if cleaned in ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.0-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"]:
+            cleaned = "gemini-3.5-flash"
         self.model_name = cleaned
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
@@ -97,9 +97,9 @@ class GeminiAIProvider(BaseAIProvider):
             }
         }
 
-        # Sequência de modelos prioritários para resiliência: modelo configurado primeiro, depois modelos flash velozes
+        # Sequência de modelos prioritários para resiliência: modelo configurado primeiro, depois modelos flash 3.x velozes
         models_to_try = [self.model_name]
-        for candidate in ["gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-flash"]:
+        for candidate in ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.7-flash"]:
             if candidate not in models_to_try:
                 models_to_try.append(candidate)
 

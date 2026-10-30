@@ -67,8 +67,8 @@ def get_ai_diagnostics(
     except Exception as e:
         diag["google_api_test"]["exception"] = str(e)
 
-    # Testa velocidade de geração em candidatos flash
-    test_models = ["gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.5-flash"]
+    # Testa velocidade de geração em candidatos flash 3.x
+    test_models = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.7-flash"]
     diag["model_benchmarks"] = {}
     for mod in test_models:
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={clean_key}"
@@ -79,7 +79,7 @@ def get_ai_diagnostics(
         import time
         t0 = time.time()
         try:
-            with httpx.Client(timeout=25.0) as client:
+            with httpx.Client(timeout=8.0) as client:
                 g_resp = client.post(gen_url, json=test_payload, headers={"x-goog-api-key": clean_key})
                 elapsed_ms = int((time.time() - t0) * 1000)
                 if g_resp.status_code == 200:
@@ -87,7 +87,7 @@ def get_ai_diagnostics(
                     txt = cand[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip() if cand else ""
                     diag["model_benchmarks"][mod] = {"status": 200, "elapsed_ms": elapsed_ms, "reply": txt}
                 else:
-                    diag["model_benchmarks"][mod] = {"status": g_resp.status_code, "elapsed_ms": elapsed_ms, "error": g_resp.text[:150]}
+                    diag["model_benchmarks"][mod] = {"status": g_resp.status_code, "elapsed_ms": elapsed_ms, "error": g_resp.text[:500]}
         except Exception as ex:
             diag["model_benchmarks"][mod] = {"error": str(ex), "elapsed_ms": int((time.time() - t0) * 1000)}
 
