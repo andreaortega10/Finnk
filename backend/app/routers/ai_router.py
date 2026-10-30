@@ -26,6 +26,50 @@ def get_ai_status(
     )
 
 
+@router.get("/diag")
+def get_ai_diagnostics(
+    current_user: User = Depends(get_current_user)
+):
+    """Diagnóstico técnico protegido para verificação da API do Google Gemini."""
+    import httpx
+    raw_key = settings.GEMINI_API_KEY or ""
+    clean_key = raw_key.strip()
+    key_masked = f"{clean_key[:6]}...{clean_key[-4:]}" if len(clean_key) >= 10 else "(vazia ou muito curta)"
+
+    diag = {
+        "provider": settings.AI_PROVIDER,
+        "model_configured": settings.GEMINI_MODEL,
+        "key_present": bool(clean_key),
+        "key_length": len(clean_key),
+        "key_masked": key_masked,
+        "has_whitespace": bool(raw_key != clean_key),
+        "google_api_test": {}
+    }
+
+    if not clean_key:
+        diag["google_api_test"]["error"] = "Chave GEMINI_API_KEY não configurada no ambiente."
+        return diag
+
+    # Testa consulta da lista de modelos na API do Google
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={clean_key}"
+        with httpx.Client(timeout=8.0) as client:
+            resp = client.get(url, headers={"x-goog-api-key": clean_key})
+            diag["google_api_test"]["models_status_code"] = resp.status_code
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [m.get("name", "") for m in data.get("models", [])]
+                flash_models = [m for m in models if "flash" in m.lower()]
+                diag["google_api_test"]["total_models"] = len(models)
+                diag["google_api_test"]["flash_models"] = flash_models
+            else:
+                diag["google_api_test"]["error_body"] = resp.text[:400]
+    except Exception as e:
+        diag["google_api_test"]["exception"] = str(e)
+
+    return diag
+
+
 @router.get("/history", response_model=List[AIChatMessageOut])
 def get_chat_history(
     current_user: User = Depends(get_current_user),

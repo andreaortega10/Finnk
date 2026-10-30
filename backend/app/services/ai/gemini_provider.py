@@ -1,7 +1,10 @@
+import logging
 import httpx
 from typing import List, Dict, Tuple, Optional
 from fastapi import HTTPException, status
 from .base import BaseAIProvider
+
+logger = logging.getLogger("finnk.ai.gemini")
 
 class GeminiAIProvider(BaseAIProvider):
     """
@@ -17,11 +20,44 @@ class GeminiAIProvider(BaseAIProvider):
         max_output_tokens: int = 800,
         timeout_seconds: float = 15.0
     ):
-        self.api_key = api_key
-        self.model_name = model_name
+        self.api_key = (api_key or "").strip()
+        # Normaliza o nome do modelo removendo prefixos redundantes
+        raw_model = (model_name or "gemini-1.5-flash").strip()
+        self.model_name = raw_model.replace("models/", "")
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.timeout_seconds = timeout_seconds
+
+    def _call_gemini_api(self, model: str, payload: dict) -> Tuple[Optional[dict], int, str]:
+        """Executa a chamada HTTP para o endpoint da Google Generative Language API."""
+        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.api_key}"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key
+        }
+        
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                response = client.post(endpoint, json=payload, headers=headers)
+                status_code = response.status_code
+                text = response.text
+                try:
+                    data = response.json()
+                except Exception:
+                    data = None
+                return data, status_code, text
+        except httpx.TimeoutException:
+            logger.error("Timeout na comunicação com a API do Gemini (>15s)")
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="Tempo limite excedido na comunicação com o Gemini. Aguarde alguns instantes e tente novamente."
+            )
+        except Exception as e:
+            logger.error(f"Exceção de rede ao conectar ao Gemini: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Falha de conexão com o serviço Gemini: {str(e)}"
+            )
 
     def generate_reply(
         self,
@@ -34,8 +70,6 @@ class GeminiAIProvider(BaseAIProvider):
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="A chave GEMINI_API_KEY não está configurada no ambiente do servidor. A assistência com IA está temporariamente indisponível."
             )
-
-        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
 
         # Monta histórico de mensagens anteriores limitando o tamanho
         contents = []
@@ -64,57 +98,68 @@ class GeminiAIProvider(BaseAIProvider):
             }
         }
 
-        try:
-            with httpx.Client(timeout=self.timeout_seconds) as client:
-                response = client.post(endpoint, json=payload)
+        # Primeira tentativa com o modelo configurado
+        data, status_code, raw_text = self._call_gemini_api(self.model_name, payload)
+        active_model = self.model_name
 
-            if response.status_code == 200:
-                data = response.json()
-                candidates = data.get("candidates", [])
-                if not candidates:
-                    return (
-                        "Não foi possível obter uma resposta detalhada no momento. Por favor, tente reformular sua pergunta.",
-                        f"gemini/{self.model_name}"
-                    )
-                content = candidates[0].get("content", {})
-                parts = content.get("parts", [])
-                if parts and "text" in parts[0]:
-                    return (parts[0]["text"].strip(), f"gemini/{self.model_name}")
+        # Se 404 (modelo não encontrado), tenta fallback para gemini-2.0-flash ou gemini-1.5-flash-latest
+        if status_code == 404:
+            fallback_models = ["gemini-2.0-flash", "gemini-1.5-flash-latest"]
+            for fb_model in fallback_models:
+                if fb_model != self.model_name:
+                    logger.warning(f"Modelo {self.model_name} retornou 404. Tentando modelo alternativo: {fb_model}")
+                    data, status_code, raw_text = self._call_gemini_api(fb_model, payload)
+                    if status_code == 200:
+                        active_model = fb_model
+                        break
+
+        if status_code == 200 and data:
+            candidates = data.get("candidates", [])
+            if not candidates:
                 return (
-                    "O assistente analisou seus dados, mas não gerou texto adicional. Como posso ajudar com outra dúvida financeira?",
-                    f"gemini/{self.model_name}"
+                    "Não foi possível obter uma resposta detalhada no momento. Por favor, tente reformular sua pergunta.",
+                    f"gemini/{active_model}"
                 )
-
-            elif response.status_code == 429:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="A cota gratuita temporária da API de IA foi atingida. Por favor, aguarde alguns instantes e tente novamente. Suas funcionalidades financeiras continuam disponíveis normalmente!"
-                )
-            elif response.status_code in [401, 403]:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="A credencial configurada para o serviço de IA é inválida ou expirou. Contate o administrador do sistema."
-                )
-            elif response.status_code == 400:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="A solicitação não pôde ser processada pelo modelo de IA. Tente enviar uma mensagem mais curta."
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="O serviço de IA está temporariamente indisponível. Suas informações financeiras permanecem intactas."
-                )
-
-        except httpx.TimeoutException:
-            raise HTTPException(
-                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="Tempo limite excedido na comunicação com o provedor de IA. Por favor, tente novamente em instantes."
+            content = candidates[0].get("content", {})
+            parts = content.get("parts", [])
+            if parts and "text" in parts[0]:
+                return (parts[0]["text"].strip(), f"gemini/{active_model}")
+            return (
+                "O assistente analisou seus dados financeiros com sucesso. Como posso ajudar com outra dúvida?",
+                f"gemini/{active_model}"
             )
-        except HTTPException:
-            raise
-        except Exception as e:
+
+        # Extrai mensagem de erro da resposta do Google para diagnóstico
+        error_msg = ""
+        if data and isinstance(data, dict):
+            error_msg = data.get("error", {}).get("message", "")
+        if not error_msg:
+            error_msg = raw_text[:200]
+
+        logger.error(f"Gemini API retornou HTTP {status_code} para o modelo {self.model_name}: {error_msg}")
+
+        if status_code == 429:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Cota gratuita da API Gemini atingida: {error_msg}. Aguarde um instante e tente novamente."
+            )
+        elif status_code in [401, 403]:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Ocorreu uma falha na conexão com a inteligência artificial. Tente novamente mais tarde."
+                detail=f"A credencial GEMINI_API_KEY no servidor é inválida ou não autorizada: {error_msg}"
+            )
+        elif status_code == 400:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Requisição inválida para o Gemini: {error_msg}"
+            )
+        elif status_code == 404:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Modelo Gemini não encontrado ({self.model_name}): {error_msg}"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"O serviço de IA retornou erro HTTP {status_code}: {error_msg}"
             )
