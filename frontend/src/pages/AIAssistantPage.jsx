@@ -16,6 +16,62 @@ import {
 import { api } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 
+function FormattedAssistantMessage({ content }) {
+  if (!content) return null;
+
+  // 1. Limpeza rigorosa de marcações brutas de markdown (* ou **)
+  // Remove asteriscos duplos de negrito preservando o texto interno
+  let cleaned = content.replace(/\*\*(.*?)\*\*/g, '$1');
+  // Converte marcadores de lista com asterisco em marcadores limpos (• item)
+  cleaned = cleaned.replace(/^[ \t]*\*[ \t]+/gm, '• ');
+  // Remove qualquer asterisco simples remanescente
+  cleaned = cleaned.replace(/\*/g, '');
+
+  const lines = cleaned.split('\n');
+
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={idx} className="h-1" />;
+        }
+
+        // Renderiza itens de tópicos (• ou -) com marcadores visuais elegantes
+        if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+          const itemText = trimmed.replace(/^[•\-]\s*/, '');
+          const colonIdx = itemText.indexOf(':');
+          if (colonIdx > 0 && colonIdx < 50) {
+            const label = itemText.substring(0, colonIdx + 1);
+            const value = itemText.substring(colonIdx + 1);
+            return (
+              <div key={idx} className="flex items-start space-x-2 pl-1 py-0.5">
+                <span className="text-[#D83A6F] font-black text-sm select-none leading-none mt-0.5">•</span>
+                <span className="leading-relaxed">
+                  <strong className="font-bold text-slate-900">{label}</strong>
+                  {value}
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div key={idx} className="flex items-start space-x-2 pl-1 py-0.5">
+              <span className="text-[#D83A6F] font-black text-sm select-none leading-none mt-0.5">•</span>
+              <span className="leading-relaxed">{itemText}</span>
+            </div>
+          );
+        }
+
+        return (
+          <p key={idx} className="leading-relaxed">
+            {line}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AIAssistantPage({ onNavigate }) {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -255,34 +311,7 @@ export function AIAssistantPage({ onNavigate }) {
                   {isUser ? (
                     m.content
                   ) : (
-                    <ReactMarkdown
-                      components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                        strong: ({ children }) => <strong className="font-bold text-slate-900">{children}</strong>,
-                        em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
-                        ul: ({ children }) => (
-                          <ul className="my-2 space-y-1.5 list-disc pl-4 marker:text-[#D83A6F]">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="my-2 space-y-1.5 list-decimal pl-4 marker:text-[#D83A6F] marker:font-bold">
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => <li className="leading-relaxed pl-1">{children}</li>,
-                        h1: ({ children }) => <h1 className="text-base font-black text-slate-900 mt-2.5 mb-1">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-sm font-bold text-slate-900 mt-2 mb-1">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-xs font-bold text-slate-900 mt-1.5 mb-0.5">{children}</h3>,
-                        code: ({ children }) => (
-                          <code className="bg-pink-50 text-[#D83A6F] px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">
-                            {children}
-                          </code>
-                        ),
-                      }}
-                    >
-                      {m.content}
-                    </ReactMarkdown>
+                    <FormattedAssistantMessage content={m.content} />
                   )}
 
                   {m.period_analyzed && !isUser && (

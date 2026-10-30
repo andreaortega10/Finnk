@@ -1,10 +1,23 @@
 import logging
 import httpx
+import re
 from typing import List, Dict, Tuple, Optional
 from fastapi import HTTPException, status
 from .base import BaseAIProvider
 
 logger = logging.getLogger("finnk.ai.gemini")
+
+def clean_markdown_artifacts(text: str) -> str:
+    """Remove marcações visuais de asteriscos para garantir texto limpo e legível."""
+    if not text:
+        return ""
+    # Transforma bullets de asterisco em traços: '* Item' -> '- Item'
+    text = re.sub(r'^[ \t]*\*[ \t]+', '- ', text, flags=re.MULTILINE)
+    # Remove asteriscos duplos de negrito: '**R$ 0,00**' -> 'R$ 0,00'
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+    # Remove asteriscos simples remanescentes
+    text = text.replace('*', '')
+    return text.strip()
 
 class GeminiAIProvider(BaseAIProvider):
     """
@@ -123,7 +136,8 @@ class GeminiAIProvider(BaseAIProvider):
                 content = candidates[0].get("content", {})
                 parts = content.get("parts", [])
                 if parts and "text" in parts[0]:
-                    return (parts[0]["text"].strip(), f"gemini/{active_model}")
+                    cleaned_reply = clean_markdown_artifacts(parts[0]["text"])
+                    return (cleaned_reply, f"gemini/{active_model}")
                 return (
                     "O assistente analisou seus dados financeiros com sucesso. Como posso ajudar com outra dúvida?",
                     f"gemini/{active_model}"

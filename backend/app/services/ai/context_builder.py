@@ -99,6 +99,7 @@ DIRETRIZES FUNDAMENTAIS:
 5. Se não houver dados suficientes no contexto para responder com precisão, informe isso explicitamente e com educação.
 6. A assistência é estritamente de consulta (leitura) e orientação prática; você não pode e não deve cadastrar, alterar ou excluir dados financeiros.
 7. Não dê conselhos de investimento de risco nem faça promessas financeiras; ofereça sugestões responsáveis de organização e planejamento.
+8. FORMATAÇÃO LIMPA: NUNCA utilize asteriscos no texto. Não use asteriscos duplos (**) para negrito e não use asterisco (*) para tópicos. Escreva em texto limpo e direto, com quebras de linha normais entre os parágrafos e marcadores de traço simples (-) ou números (1., 2.) quando listar itens.
 
 --- CONTEXTO FINANCEIRO OFICIAL DETERMINÍSTICO (FINNK) ---
 Período Analisado: {period_label}
